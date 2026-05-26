@@ -61,13 +61,7 @@ _backups/
 .claude/
 memory/
 
-# ── Built documents (собираются локально) ────────────────────────────────────
-*.docx
-!docs/Пример/*.docx
-docs/VKR_Kolobaev/Kolobaev_VKR_2026.docx
 
-# ── External tools ───────────────────────────────────────────────────────────
-docs/plantuml.jar
 
 # ── Example folder (другой проект) ───────────────────────────────────────────
 docs/Пример/
