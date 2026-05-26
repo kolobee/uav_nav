@@ -10,10 +10,12 @@ descriptors rather than raw appearance features.
 
 from __future__ import annotations
 
+import pickle
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
 
+import networkx as nx
 import numpy as np
 
 from uav_nav.perception.landmark_extractor import Landmark
@@ -35,7 +37,7 @@ class TILMNode:
     """
 
     node_id: int
-    position_ned: np.ndarray        # (3,)
+    position_ned: np.ndarray              # (3,)
     landmarks: list[Landmark] = field(default_factory=list)
     place_descriptor: Optional[np.ndarray] = None  # (D,)
     timestamp: float = 0.0
@@ -48,11 +50,7 @@ class TILMNode:
         return len(self.landmarks)
 
     def landmark_classes(self) -> set[str]:
-        """Return the set of unique semantic class names present.
-
-        Returns:
-            Set of class name strings.
-        """
+        """Return the set of unique semantic class names present."""
         return {lm.semantic_class for lm in self.landmarks}
 
 
@@ -63,8 +61,7 @@ class TILMEdge:
     Attributes:
         src_id: Source node identifier.
         dst_id: Destination node identifier.
-        relative_pose: Relative SE(3) transform (4x4), float64.
-            Transforms points in src frame to dst frame.
+        relative_pose: Relative SE(3) transform (4×4), float64.
         distance: Euclidean distance between nodes in metres.
         traversal_count: Number of times this edge has been traversed.
         weight: Edge cost used for graph search (lower is better).
@@ -72,7 +69,7 @@ class TILMEdge:
 
     src_id: int
     dst_id: int
-    relative_pose: np.ndarray   # (4, 4)
+    relative_pose: np.ndarray    # (4, 4)
     distance: float
     traversal_count: int = 0
     weight: float = 1.0
@@ -97,30 +94,33 @@ class TILM:
     ) -> None:
         self.max_nodes = max_nodes
         self.min_node_distance = min_node_distance
-        self._graph: Optional[object] = None  # networkx.DiGraph
-        self._node_positions: np.ndarray = np.empty((0, 3))
+        self._graph: nx.DiGraph = nx.DiGraph()
+        self._nodes: dict[int, TILMNode] = {}
+        self._node_ids: list[int] = []
+        self._positions: list[np.ndarray] = []
 
     def initialise(self) -> None:
-        """Create the internal networkx graph.
-
-        Raises:
-            NotImplementedError: Not yet implemented.
-        """
-        raise NotImplementedError("TILM.initialise is not yet implemented.")
+        """Reset the internal graph to an empty state."""
+        self._graph = nx.DiGraph()
+        self._nodes = {}
+        self._node_ids = []
+        self._positions = []
 
     def add_node(self, node: TILMNode) -> int:
-        """Insert a node into the graph, returning the assigned node ID.
+        """Insert a node into the graph.
 
         Args:
             node: TILMNode to insert.
 
         Returns:
             Assigned integer node ID.
-
-        Raises:
-            NotImplementedError: Not yet implemented.
         """
-        raise NotImplementedError("TILM.add_node is not yet implemented.")
+        nid = node.node_id
+        self._graph.add_node(nid)
+        self._nodes[nid] = node
+        self._node_ids.append(nid)
+        self._positions.append(node.position_ned.copy())
+        return nid
 
     def add_edge(self, edge: TILMEdge) -> None:
         """Insert a directed edge between two existing nodes.
@@ -129,10 +129,12 @@ class TILM:
             edge: TILMEdge connecting src_id → dst_id.
 
         Raises:
-            NotImplementedError: Not yet implemented.
             KeyError: If either node ID does not exist.
         """
-        raise NotImplementedError("TILM.add_edge is not yet implemented.")
+        for nid in (edge.src_id, edge.dst_id):
+            if nid not in self._nodes:
+                raise KeyError(f"Node {nid} not in TILM")
+        self._graph.add_edge(edge.src_id, edge.dst_id, data=edge)
 
     def nearest_node(
         self, position_ned: np.ndarray, k: int = 1
@@ -144,12 +146,16 @@ class TILM:
             k: Number of nearest nodes to return.
 
         Returns:
-            List of (node_id, distance_m) tuples, sorted by distance ascending.
-
-        Raises:
-            NotImplementedError: Not yet implemented.
+            List of (node_id, distance_m) tuples, sorted ascending by distance.
         """
-        raise NotImplementedError("TILM.nearest_node is not yet implemented.")
+        if not self._node_ids:
+            return []
+        pos_arr = np.array(self._positions)              # (N, 3)
+        dists = np.linalg.norm(pos_arr - position_ned, axis=1)
+        k = min(k, len(self._node_ids))
+        top_idx = np.argpartition(dists, k - 1)[:k]
+        top_idx = top_idx[np.argsort(dists[top_idx])]
+        return [(self._node_ids[i], float(dists[i])) for i in top_idx]
 
     def shortest_path(
         self, src_id: int, dst_id: int
@@ -161,12 +167,12 @@ class TILM:
             dst_id: Destination node ID.
 
         Returns:
-            Ordered list of node IDs forming the path, or None if unreachable.
-
-        Raises:
-            NotImplementedError: Not yet implemented.
+            Ordered list of node IDs, or None if unreachable.
         """
-        raise NotImplementedError("TILM.shortest_path is not yet implemented.")
+        try:
+            return nx.shortest_path(self._graph, src_id, dst_id)
+        except (nx.NetworkXNoPath, nx.NodeNotFound):
+            return None
 
     def get_node(self, node_id: int) -> TILMNode:
         """Retrieve a node by ID.
@@ -179,31 +185,36 @@ class TILM:
 
         Raises:
             KeyError: If the node ID does not exist.
-            NotImplementedError: Not yet implemented.
         """
-        raise NotImplementedError("TILM.get_node is not yet implemented.")
+        if node_id not in self._nodes:
+            raise KeyError(f"Node {node_id} not in TILM")
+        return self._nodes[node_id]
 
     def n_nodes(self) -> int:
-        """Return the total number of nodes.
+        """Return the total number of nodes."""
+        return len(self._nodes)
 
-        Returns:
-            Integer node count.
-
-        Raises:
-            NotImplementedError: Not yet implemented.
-        """
-        raise NotImplementedError("TILM.n_nodes is not yet implemented.")
+    @property
+    def all_nodes(self) -> list[TILMNode]:
+        """Return all nodes as a list."""
+        return list(self._nodes.values())
 
     def save(self, path: Path) -> None:
-        """Serialise the map to a file (HDF5 or pickle).
+        """Serialise the map to a pickle file.
 
         Args:
-            path: Output file path.
-
-        Raises:
-            NotImplementedError: Not yet implemented.
+            path: Output file path (.tilm or .pkl).
         """
-        raise NotImplementedError("TILM.save is not yet implemented.")
+        path = Path(path)
+        data = {
+            "max_nodes": self.max_nodes,
+            "min_node_distance": self.min_node_distance,
+            "graph": self._graph,
+            "nodes": self._nodes,
+            "node_ids": self._node_ids,
+            "positions": self._positions,
+        }
+        path.write_bytes(pickle.dumps(data))
 
     @classmethod
     def load(cls, path: Path) -> "TILM":
@@ -214,8 +225,14 @@ class TILM:
 
         Returns:
             Loaded TILM instance.
-
-        Raises:
-            NotImplementedError: Not yet implemented.
         """
-        raise NotImplementedError("TILM.load is not yet implemented.")
+        data = pickle.loads(Path(path).read_bytes())
+        tilm = cls(
+            max_nodes=data["max_nodes"],
+            min_node_distance=data["min_node_distance"],
+        )
+        tilm._graph = data["graph"]
+        tilm._nodes = data["nodes"]
+        tilm._node_ids = data["node_ids"]
+        tilm._positions = data["positions"]
+        return tilm
