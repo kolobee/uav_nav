@@ -1,0 +1,37 @@
+@startuml seq_mapping_mission
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam defaultFontName "Times New Roman"
+skinparam defaultFontSize 12
+
+title Sequence: построение TILM в режиме MAPPING
+
+participant "Mission" as m
+participant "Camera+IMU+GPS" as sens
+participant "FeatureExtractor" as fe
+participant "LandmarkExtractor" as le
+participant "TILMBuilder" as tb
+participant "TILM" as tilm
+
+m -> sens : старт миссии MAPPING
+loop по каждому кадру (25 Hz)
+  sens -> fe : rgb, depth_GT, pose_GPS
+  fe --> le : List[Detection]
+  loop по каждой детекции
+    le --> le : project(centroid_uv, depth, pose)\n→ position_world
+    le -> tb : Landmark(class, embedding,\nposition_world, t_expected)
+    activate tb
+    tb -> tilm : ближайший landmark по позиции?
+    tilm --> tb : nearby (или None)
+    alt cosine(emb, nearby) > 0.85\nи distance < 3 м
+      tb -> tilm : update(EMA, ++observation_count)
+    else
+      tb -> tilm : add(new landmark)
+    end
+    deactivate tb
+  end
+end
+m -> tb : finalize(min_observations=2)
+tb -> tilm : prune мелких,\nsort by arc_length
+tb -> tilm : save(tilm.h5)
+@enduml

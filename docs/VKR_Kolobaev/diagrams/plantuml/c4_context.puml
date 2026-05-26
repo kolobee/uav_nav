@@ -1,0 +1,45 @@
+@startuml c4_context
+!define RECTANGLE class
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam roundCorner 12
+skinparam defaultFontName "Times New Roman"
+skinparam defaultFontSize 14
+skinparam ArrowColor #2E4053
+skinparam ArrowFontColor #2E4053
+
+skinparam actor {
+  BackgroundColor #F4F6F7
+  BorderColor #2E4053
+}
+skinparam rectangle {
+  BackgroundColor<<system>> #FDEBD0
+  BorderColor<<system>> #B7950B
+  BackgroundColor<<external>> #D6EAF8
+  BorderColor<<external>> #1F618D
+}
+
+title Контекстная диаграмма системы автономной VIO-навигации БПЛА
+
+actor "Оператор\nназемной станции" as op
+rectangle "Система автономной VIO-навигации\nс семантическим TILM" <<system>> as sys
+rectangle "Полётный контроллер\nБПЛА (PX4 / Ardupilot)" <<external>> as fc
+rectangle "Бортовая камера\n(монохромная RGB, 25 FPS)" <<external>> as cam
+rectangle "Инерциальный\nизмерительный блок\n(MEMS-IMU, 100 Гц)" <<external>> as imu
+rectangle "Приёмник ГНСС\n(GPS/ГЛОНАСС, опционально)" <<external>> as gps
+
+op --> sys : задание миссии,\nрежим работы
+cam --> sys : RGB-кадры
+imu --> sys : ускорения,\nугловые скорости
+gps ..> sys : координаты\n(режим MAPPING)
+sys --> fc : целевые\nточки маршрута
+sys --> op : телеметрия,\nстатус навигации
+
+note bottom of sys
+  Назначение: непрерывная оценка положения
+  и ориентации БПЛА в условиях отсутствия
+  устойчивого GNSS-сигнала на предкарто-
+  графированных маршрутах.
+end note
+
+@enduml

@@ -1,0 +1,20 @@
+{
+  "seed": 42,
+  "yolo_best_v8n": {
+    "mAP50_mask": 0.982,
+    "mAP50_95_mask": 0.753,
+    "F1": 0.9525,
+    "FPS_GPU": 34.6,
+    "FPS_Pi5_NCNN": 7.4
+  },
+  "embedding": {
+    "roc_auc": 0.983,
+    "recall_at_1": 0.118,
+    "discriminability": 8.46
+  },
+  "best_match_threshold": 0.55,
+  "best_dt_window_s": 5.0,
+  "median_ate_tilm_m": 1.8,
+  "median_ate_imu_m": 58.9,
+  "improvement_factor": 32.7
+}

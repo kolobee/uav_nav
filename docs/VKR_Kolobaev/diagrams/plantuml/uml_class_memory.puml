@@ -1,0 +1,60 @@
+@startuml uml_class_memory
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam defaultFontName "Times New Roman"
+skinparam defaultFontSize 12
+skinparam class {
+  BackgroundColor #D5F5E3
+  BorderColor #1E8449
+  ArrowColor #1E8449
+}
+
+title Диаграмма классов модуля памяти (uav_nav.memory)
+
+class TrajectoryIndexedLandmarkMap {
+  - landmarks: Dict[int, Landmark]
+  - by_arc: SortedList[Tuple[float, int]]
+  - graph: nx.Graph
+  + add(landmark: Landmark): int
+  + update(id: int, lm: Landmark, alpha: float = 0.2): None
+  + query_candidates(t: float, dt: float, class_filter: int): List[Landmark]
+  + density(arc_length: float, radius: float): float
+  + save(path: Path): None
+  + load(path: Path): TILM
+}
+
+class TILMBuilder {
+  - tilm: TILM
+  - merge_radius_m: float = 3.0
+  - cosine_merge_threshold: float = 0.85
+  + add_observation(det: Detection, depth, pose): None
+  + finalize(min_observations: int = 2): TILM
+}
+
+class TemporalMatcher {
+  - tilm: TILM
+  - dt_window: float = 5.0
+  - cosine_threshold: float = 0.55
+  - class_filter: bool = true
+  + match(det: Detection, t_current: float): Optional[Match]
+  - _score(det, candidate): float
+}
+
+class PlaceDescriptor {
+  - descriptor: np.ndarray  // 512-d, NetVLAD-подобный
+  + similarity(other: PlaceDescriptor): float
+}
+
+class Match {
+  + detection: Detection
+  + landmark: Landmark
+  + score: float
+  + dt_offset: float
+}
+
+TILMBuilder o--> TrajectoryIndexedLandmarkMap
+TemporalMatcher o--> TrajectoryIndexedLandmarkMap
+TemporalMatcher ..> Match : creates
+TrajectoryIndexedLandmarkMap "1" *-- "*" Landmark
+
+@enduml

@@ -1,0 +1,33 @@
+@startuml c4_component_estimation
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam defaultFontName "Times New Roman"
+skinparam defaultFontSize 12
+skinparam component {
+  BackgroundColor #FCF3CF
+  BorderColor #B7950B
+}
+
+title C4 Component: модуль оценивания состояния (estimation)
+
+package "estimation" {
+  [IMUPreintegrator\n(Forster 2017,\nMid-Point integration)] as pre
+  [ErrorStateEKF\n(15-state error,\nmultiplicative quaternion)] as ekf
+  [PoseUtils\n(SO3, Quaternion,\nexpmap, jacobians)] as pu
+}
+
+[IMU sample\n(accel, gyro, t)] as imu_sample
+[TILM Match] as match
+[GPS position\n(только в MAPPING)] as gps
+[Pose & cov\n(downstream)] as out
+[Monitor:\nχ² stats] as mon
+
+imu_sample --> pre : буферизация\nдо приёма Match или dt > 0.25 с
+pre --> ekf : Preintegrated Δ:\nΔR, Δv, Δp, Σ (9×9)
+match --> ekf : landmark_world,\ncamera_centroid_uv
+gps --> ekf : 3D позиция,\nдиагональная R = (0.5²) I
+ekf --> pu : δθ → δq\n(small-angle update)
+pu --> ekf : updated attitude
+ekf --> out : SE3 pose,\nP (15×15)
+ekf --> mon : γ² gating stats,\ninnovation log
+@enduml

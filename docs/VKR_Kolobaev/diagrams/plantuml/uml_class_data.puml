@@ -1,0 +1,74 @@
+@startuml uml_class_data
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam defaultFontName "Times New Roman"
+skinparam defaultFontSize 12
+skinparam class {
+  BackgroundColor #FDF2E9
+  BorderColor #BA4A00
+  ArrowColor #BA4A00
+}
+
+title Диаграмма классов модуля данных (uav_nav.data)
+
+class MidAirLoader {
+  - h5_path: Path
+  - trajectory: str
+  - camera: str
+  + load_rgb(idx: int): np.ndarray
+  + load_segmentation(idx: int): np.ndarray
+  + load_depth(idx: int): np.ndarray
+  + sync_imu(camera_idx: int): IMUSample
+  + iter_frames(stride: int): Iterator[Frame]
+}
+
+class Calibration {
+  + fx: float = 512.0
+  + fy: float = 512.0
+  + cx: float = 512.0
+  + cy: float = 512.0
+  + width: int = 1024
+  + height: int = 1024
+  + project(p3d: np.ndarray): np.ndarray
+  + unproject(uv: np.ndarray, depth: float): np.ndarray
+}
+
+class DatasetBuilder {
+  - loader: MidAirLoader
+  - out_dir: Path
+  - min_area: int = 400
+  - epsilon: float = 0.002
+  + build(): None
+  + split_by_trajectory(seed: int): Tuple[List, List, List]
+  - _watershed(mask): np.ndarray
+  - _to_polygon(mask): List[Tuple[float, float]]
+}
+
+class TripletDataset {
+  - instance_index: pd.DataFrame
+  - crop_size: int = 96
+  + sample_triplet(): Tuple[Tensor, Tensor, Tensor]
+  + __len__(): int
+}
+
+class Frame {
+  + idx: int
+  + timestamp: float
+  + rgb: np.ndarray
+  + segmentation: np.ndarray
+  + pose_gt: SE3
+}
+
+class IMUSample {
+  + timestamp: float
+  + accel: np.ndarray
+  + gyro: np.ndarray
+}
+
+DatasetBuilder o--> MidAirLoader
+MidAirLoader ..> Frame : creates
+MidAirLoader ..> IMUSample : creates
+MidAirLoader --> Calibration
+TripletDataset ..> DatasetBuilder : reads index from
+
+@enduml

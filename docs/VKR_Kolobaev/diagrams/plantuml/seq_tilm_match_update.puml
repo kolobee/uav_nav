@@ -1,0 +1,45 @@
+@startuml seq_tilm_match_update
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam defaultFontName "Times New Roman"
+skinparam defaultFontSize 12
+
+title Sequence: детальная схема TILM-коррекции в Error-State EKF
+
+participant "FeatureExtractor" as fe
+participant "TemporalMatcher" as tm
+participant "TILM" as tilm
+participant "ErrorStateEKF" as ekf
+participant "PoseUtils" as pu
+
+fe -> tm : Detection(class=tree,\nembedding, centroid_uv)
+activate tm
+tm -> tilm : query_candidates(t_curr=18.4, dt=5.0, class=tree)
+tilm --> tm : [L_12, L_15, L_18]
+loop k in candidates
+  tm --> tm : s_k = cos(e_det, e_k)
+end
+tm --> tm : best = argmax_k s_k
+note right of tm
+  Если best.s < 0.55 — отказ от коррекции.
+  Иначе формируется Match с указанием
+  dt_offset и score.
+end note
+tm -> ekf : update_tilm(match,\nposition_world=L_15.p)
+deactivate tm
+
+activate ekf
+ekf --> ekf : H_j = ∂h/∂x_err  (3×15)
+ekf --> ekf : S = H P Hᵀ + R
+ekf --> ekf : γ² = innovᵀ S⁻¹ innov
+alt γ² > 11.34 (χ²₃, 0.99)
+  ekf --> ekf : reject as outlier
+else
+  ekf --> ekf : K = P Hᵀ S⁻¹
+  ekf --> pu : δθ → δq (mult.)
+  pu --> ekf : updated attitude
+  ekf --> ekf : x ← x ⊕ δx
+  ekf --> ekf : P ← (I − KH) P
+end
+deactivate ekf
+@enduml

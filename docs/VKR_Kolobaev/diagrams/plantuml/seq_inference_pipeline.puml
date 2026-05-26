@@ -1,0 +1,49 @@
+@startuml seq_inference_pipeline
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam defaultFontName "Times New Roman"
+skinparam defaultFontSize 12
+skinparam sequenceArrowColor #2E4053
+skinparam sequenceLifeLineBorderColor #5D6D7E
+skinparam sequenceParticipantBorderColor #2E4053
+
+title Sequence: один цикл обработки кадра в режиме GNSS_LOST
+
+participant "Camera\n(25 Hz)" as cam
+participant "YOLOSegmenter" as yolo
+participant "EmbeddingHead" as eh
+participant "TILM" as tilm
+participant "TemporalMatcher" as tm
+participant "IMUPreintegrator" as pre
+participant "ErrorStateEKF" as ekf
+participant "PathFollower" as pf
+participant "Полётный\nконтроллер" as fc
+
+cam -> yolo : frame_rgb
+activate yolo
+yolo --> yolo : forward (NCNN, ~120 мс на Pi5)
+yolo --> tm : List[Detection]\n(class, bbox, mask)
+deactivate yolo
+
+loop по каждой детекции
+  tm -> eh : mask_crop 96x96
+  activate eh
+  eh --> tm : embedding (128-d, L2-norm)
+  deactivate eh
+  tm -> tilm : query_candidates(t±5с, class)
+  tilm --> tm : List[Landmark]
+  tm --> tm : argmax cosine,\nthr >= 0.55
+  alt совпадение найдено
+    tm --> ekf : Match(det, landmark)
+    activate ekf
+    pre -> ekf : Preintegrated Δ
+    ekf --> ekf : update_tilm(...)
+    ekf --> ekf : mahalanobis gating
+    deactivate ekf
+  end
+end
+
+ekf -> pf : SE3 pose, P
+pf --> pf : state machine\n(ON_PATH/DEVIATED/...)
+pf -> fc : waypoint, heading, speed
+@enduml

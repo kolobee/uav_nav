@@ -1,0 +1,44 @@
+@startuml activity_ekf_update
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam defaultFontName "Times New Roman"
+skinparam defaultFontSize 12
+skinparam activity {
+  BackgroundColor #FCF3CF
+  BorderColor #B7950B
+}
+
+title Activity: цикл Error-State EKF VIO
+
+start
+:Получить очередной IMU sample\n(accel, gyro, t);
+:Корректировка биасов:\na = a_raw − b_a; ω = ω_raw − b_g;
+:Mid-Point интегрирование\nR ← R · Exp(ω · Δt);
+:v ← v + (R · a − g) · Δt;
+:p ← p + v · Δt + 0.5 (R·a−g) Δt²;
+:Накопление preintegrated Δ, Σ;
+
+if (поступил TILM Match?) then (да)
+  :h(x) = π(R⁻¹ · (p_lm − p));
+  :z = centroid_uv детекции;
+  :innov = z − h(x);
+  :H = ∂h/∂x_err  (2×15);
+  :S = H P Hᵀ + R_meas;
+  :γ² = innovᵀ S⁻¹ innov;
+  if (γ² < χ²₂(0.99) = 9.21?) then (да)
+    :K = P Hᵀ S⁻¹;
+    :δx = K · innov;
+    :применить δθ через small-angle quaternion update;
+    :x ← x ⊕ δx;
+    :P ← (I − KH) P (Joseph form);
+  else (нет)
+    :отбросить как outlier;
+  endif
+elseif (поступил GPS-fix и режим MAPPING?) then (да)
+  :h(x) = p; R_gps = diag(0.5² m²);
+  :update аналогично TILM;
+endif
+
+:вернуть pose, P;
+stop
+@enduml

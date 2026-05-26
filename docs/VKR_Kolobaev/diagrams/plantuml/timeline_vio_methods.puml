@@ -1,0 +1,44 @@
+@startuml timeline_vio_methods
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam defaultFontName "Times New Roman"
+skinparam defaultFontSize 11
+
+title Эволюция методов визуально-инерциальной одометрии и SLAM (2007–2025)
+
+concise "VIO / VI-SLAM" as VIO
+
+@2007
+VIO is "MSCKF\n(Mourikis)"
+
+@2013
+VIO is "OKVIS\n(Leutenegger)"
+
+@2015
+VIO is "ORB-SLAM\n(Mur-Artal)"
+
+@2017
+VIO is "VINS-Mono\n(Qin)"
+
+@2017.5
+VIO is "ORB-SLAM2\nFusion+IMU"
+
+@2018
+VIO is "VINS-Fusion"
+
+@2020
+VIO is "OpenVINS\n(Geneva)"
+
+@2020.5
+VIO is "Kimera\n(Rosinol)"
+
+@2021
+VIO is "ORB-SLAM3\n(Campos)"
+
+@2023
+VIO is "Учёт семантики\n(landmark-based)"
+
+@2025
+VIO is "Lightweight VIO\non edge devices\n(Pi5, Jetson)"
+
+@enduml

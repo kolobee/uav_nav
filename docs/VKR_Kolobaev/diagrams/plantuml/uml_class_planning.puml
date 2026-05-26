@@ -1,0 +1,72 @@
+@startuml uml_class_planning
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam defaultFontName "Times New Roman"
+skinparam defaultFontSize 12
+skinparam class {
+  BackgroundColor #E8DAEF
+  BorderColor #6C3483
+  ArrowColor #6C3483
+}
+
+title Диаграмма классов модуля планирования (uav_nav.planning)
+
+enum FollowerState {
+  ON_PATH
+  DEVIATED
+  RECOVERING
+  LOST
+}
+
+enum MissionMode {
+  NORMAL
+  MAPPING
+  GNSS_LOST
+  RTH
+  EMERGENCY
+}
+
+class PathFollower {
+  - state: FollowerState
+  - reference_path: List[Waypoint]
+  - hysteresis_in_corridor_frames: int = 8
+  + update(pose: SE3, detections, dt_since_loss): Waypoint
+  - _compute_errors(pose): Tuple[e_xt, e_at, segment]
+  - _transition(state, e_xt, D_max, matched, dt_in_state): FollowerState
+}
+
+class AdaptiveCorridor {
+  - D_min: float = 5.0
+  - D_cap: float = 50.0
+  - rho_ref: float = 0.4  // landmarks per meter
+  + compute(arc_length: float, tilm: TILM): float
+}
+
+class RejoinPlanner {
+  - lookahead_s: float = 2.0
+  - min_lookahead_m: float = 20.0
+  + compute_rejoin(pose: SE3, ref_path, speed): Waypoint
+}
+
+class MissionStateMachine {
+  - mode: MissionMode
+  - transitions: Dict[MissionMode, List[MissionMode]]
+  + on_gnss_lost(): None
+  + on_gnss_restored(): None
+  + on_low_battery(): None
+  + on_recovery_failed(): None
+}
+
+class Waypoint {
+  + position: np.ndarray
+  + heading_rad: float
+  + speed_mps: float
+}
+
+PathFollower o--> FollowerState
+PathFollower o--> AdaptiveCorridor
+PathFollower o--> RejoinPlanner
+PathFollower ..> Waypoint : emits
+MissionStateMachine o--> MissionMode
+
+@enduml

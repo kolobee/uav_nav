@@ -1,0 +1,6 @@
+trajectory,length_m,ate_imu_m,ate_class_only_m,ate_tilm_m,rpe_tilm_m_per_s,tilm_landmarks,match_precision,match_recall
+Traj_01,892,42.3,9.2,1.3,0.18,571,0.965,0.892
+Traj_02,1124,58.9,13.4,1.8,0.21,754,0.961,0.881
+Traj_03,1456,81.5,18.7,2.4,0.27,949,0.958,0.873
+Traj_04,985,47.1,11.5,1.5,0.19,650,0.967,0.895
+Traj_05,1289,64.8,14.2,2.1,0.24,854,0.963,0.886

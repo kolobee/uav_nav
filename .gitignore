@@ -1,8 +1,11 @@
-# ── Datasets (25 GB) ─────────────────────────────────────────────────────────
+# ── Datasets (большие, скачиваются отдельно) ─────────────────────────────────
 data/
+MidAir/
 
-# ── Python artifacts ──────────────────────────────────────────────────────────
+# ── Python ───────────────────────────────────────────────────────────────────
+.venv/
 venv/
+env/
 __pycache__/
 *.pyc
 *.pyo
@@ -12,31 +15,62 @@ __pycache__/
 *.egg
 dist/
 build/
+*.so
 
-# ── Test / coverage ───────────────────────────────────────────────────────────
+# ── Test / coverage ──────────────────────────────────────────────────────────
 .coverage
 htmlcov/
 .pytest_cache/
+.mypy_cache/
+.ruff_cache/
 
-# ── IDE ───────────────────────────────────────────────────────────────────────
+# ── IDE ──────────────────────────────────────────────────────────────────────
 .idea/
 .vscode/
 *.swp
+*.swo
+.DS_Store
+Thumbs.db
 
-# ── Visualization outputs ─────────────────────────────────────────────────────
+# ── Training artifacts ───────────────────────────────────────────────────────
+runs/
+experiments/
+weights/
+*.pt
+*.onnx
+*.bin
+*.param
+yolo*.pt
+yolov*.pt
+best_ncnn_model/
+
+# ── Visualization scratch ────────────────────────────────────────────────────
 viz_classes/
 viz_labels/
 viz_labels1/
 viz_output/
 
-# ── Misc local dirs ───────────────────────────────────────────────────────────
+# ── Logs / misc ──────────────────────────────────────────────────────────────
 logs/
 outputs/
 _backups/
+*.log
+*.jsonl
 
-# ── Claude local memory ───────────────────────────────────────────────────────
+# ── Claude / agent local memory ──────────────────────────────────────────────
 .claude/
+memory/
 
-# ── Base YOLO pretrained weights (not project-specific) ──────────────────────
-yolo26n.pt
-yolov8n-seg.pt
+# ── Built documents (собираются локально) ────────────────────────────────────
+*.docx
+!docs/Пример/*.docx
+docs/VKR_Kolobaev/Kolobaev_VKR_2026.docx
+
+# ── External tools ───────────────────────────────────────────────────────────
+docs/plantuml.jar
+
+# ── Example folder (другой проект) ───────────────────────────────────────────
+docs/Пример/
+
+# ── OS ───────────────────────────────────────────────────────────────────────
+desktop.ini

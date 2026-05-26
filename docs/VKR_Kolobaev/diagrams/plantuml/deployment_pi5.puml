@@ -1,0 +1,53 @@
+@startuml deployment_pi5
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam defaultFontName "Times New Roman"
+skinparam defaultFontSize 12
+skinparam node {
+  BackgroundColor #FADBD8
+  BorderColor #B03A2E
+}
+skinparam component {
+  BackgroundColor #D6EAF8
+  BorderColor #1F618D
+}
+skinparam artifact {
+  BackgroundColor #FCF3CF
+  BorderColor #B7950B
+}
+
+title Диаграмма развёртывания на Raspberry Pi 5
+
+node "Raspberry Pi 5\n(Cortex-A76 4 ядра, 8 ГБ RAM,\nWi-Fi/Bluetooth, без NPU)" as pi {
+  node "Linux Bookworm\n(64-bit, kernel 6.6)" as os {
+    component "uav_nav.runtime.pipeline" as pipe
+    component "FeatureExtractor" as fe
+    component "TILM (in-memory)" as tilm
+    component "ErrorStateEKF" as ekf
+    component "PathFollower" as pf
+    artifact "best.ncnn.param +\nbest.ncnn.bin\n(12.6 МБ)" as model
+    artifact "tilm_route_01.h5\n(< 5 МБ)" as tilmh5
+    component "NCNN runtime\n(ARM NEON)" as ncnn
+    component "loguru sink:\nrunlog.jsonl" as log
+  }
+}
+
+node "MIPI CSI-2 камера\n(IMX477, 1280×720)" as cam
+node "IMU (BNO085 / ICM-42688)" as imu
+node "UART → PX4\nflight controller" as fc
+node "Wi-Fi → GCS" as gcs
+
+cam --> pipe : RGB stream
+imu --> pipe : 100 Гц
+pipe --> fe
+fe --> ncnn : forward
+ncnn --> model : загрузка весов
+fe --> tilm : query
+tilm --> tilmh5 : load on startup
+fe --> ekf : Match
+ekf --> pf : pose
+pf --> fc : waypoint (MAVLink)
+pipe --> log
+log --> gcs : телеметрия
+
+@enduml

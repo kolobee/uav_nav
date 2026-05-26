@@ -1,0 +1,43 @@
+@startuml activity_dataset_pipeline
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam defaultFontName "Times New Roman"
+skinparam defaultFontSize 12
+skinparam activity {
+  BackgroundColor #FDF2E9
+  BorderColor #BA4A00
+}
+
+title Activity: конвейер подготовки YOLO-датасета из MidAir
+
+start
+:Перебор пар (траектория, погода)\n6 погодных условий × 30 траекторий;
+fork
+  :Загрузка sensor_records.hdf5;
+  :Извлечение segmentation map\n(одноканальная, ID классов);
+  :Map ID → семантика\nthrough label_map.json;
+fork again
+  :Загрузка color_left RGB;
+end fork
+:Для каждого frame_idx (stride=10);
+:Итерация по целевым классам\n{tree, rock, river, road};
+:Бинаризация маски класса;
+:Watershed-разделение слившихся blob;
+if (area < 400 px?) then (да)
+  :отбросить (шум);
+else (нет)
+  if (bbox < 15×15 px?) then (да)
+    :отбросить (слишком мелкий);
+  else (нет)
+    :Извлечение контура (cv2.findContours);
+    :Douglas-Peucker (ε = 0.002 · arcLength);
+    :Нормализация в [0,1];
+    :Запись строки YOLO-seg\n  class_id x1 y1 ... xN yN;
+  endif
+endif
+:Сохранение RGB → images/{split}/;
+:Сохранение label → labels/{split}/;
+:Split по траекториям (seed=42)\n80 % train / 10 % val / 10 % test;
+:Сборка instance_index CSV\n(IoU ≥ 0.30 трекинг);
+stop
+@enduml

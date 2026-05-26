@@ -1,0 +1,74 @@
+@startuml uml_class_estimation
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam defaultFontName "Times New Roman"
+skinparam defaultFontSize 12
+skinparam class {
+  BackgroundColor #FCF3CF
+  BorderColor #B7950B
+  ArrowColor #B7950B
+}
+
+title Диаграмма классов модуля оценивания (uav_nav.estimation)
+
+class IMUPreintegrator {
+  - bias_accel: np.ndarray
+  - bias_gyro: np.ndarray
+  - noise_cov: np.ndarray  // 6x6
+  + integrate(samples: List[IMUSample]): PreintegratedDelta
+  + update_bias(b_a, b_g): None
+}
+
+class PreintegratedDelta {
+  + delta_R: np.ndarray  // SO(3)
+  + delta_v: np.ndarray
+  + delta_p: np.ndarray
+  + covariance: np.ndarray  // 9x9
+  + dt: float
+}
+
+class ErrorStateEKF {
+  - x_nominal: NominalState
+  - P: np.ndarray  // 15x15
+  - Q: np.ndarray
+  + predict(delta: PreintegratedDelta): None
+  + update_tilm(match: Match, landmark_world: np.ndarray): None
+  + update_gps(position: np.ndarray, cov: np.ndarray): None
+  + reset_error(): None
+  + mahalanobis(innov, S): float
+}
+
+class NominalState {
+  + position: np.ndarray  // (3,)
+  + velocity: np.ndarray
+  + attitude: Quaternion
+  + bias_accel: np.ndarray
+  + bias_gyro: np.ndarray
+  + as_se3(): SE3
+}
+
+class PoseSE3 {
+  + R: np.ndarray  // SO(3)
+  + t: np.ndarray
+  + compose(other: SE3): SE3
+  + inverse(): SE3
+  + log(): np.ndarray  // se(3)
+}
+
+class Quaternion {
+  + w: float
+  + x: float
+  + y: float
+  + z: float
+  + to_rotation_matrix(): np.ndarray
+  + multiply(other: Quaternion): Quaternion
+  + small_angle_update(delta_theta): Quaternion
+}
+
+ErrorStateEKF o--> NominalState
+ErrorStateEKF ..> PreintegratedDelta
+IMUPreintegrator ..> PreintegratedDelta : creates
+NominalState o--> Quaternion
+NominalState ..> PoseSE3
+
+@enduml

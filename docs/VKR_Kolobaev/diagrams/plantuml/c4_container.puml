@@ -1,0 +1,78 @@
+@startuml c4_container
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam roundCorner 10
+skinparam defaultFontName "Times New Roman"
+skinparam defaultFontSize 13
+skinparam ArrowColor #2E4053
+
+skinparam rectangle {
+  BackgroundColor<<data>> #FDF2E9
+  BorderColor<<data>> #BA4A00
+  BackgroundColor<<perception>> #D6EAF8
+  BorderColor<<perception>> #1F618D
+  BackgroundColor<<memory>> #D5F5E3
+  BorderColor<<memory>> #1E8449
+  BackgroundColor<<estimation>> #FCF3CF
+  BorderColor<<estimation>> #B7950B
+  BackgroundColor<<planning>> #E8DAEF
+  BorderColor<<planning>> #6C3483
+  BackgroundColor<<runtime>> #FADBD8
+  BorderColor<<runtime>> #B03A2E
+}
+
+title Контейнерная диаграмма (C4) системы uav_nav
+
+package "Слой данных (data)" {
+  rectangle "MidAirLoader" <<data>> as ml
+  rectangle "Calibration" <<data>> as cal
+  rectangle "DatasetBuilder" <<data>> as db
+}
+
+package "Слой восприятия (perception)" {
+  rectangle "YOLOSegmenter" <<perception>> as yolo
+  rectangle "EmbeddingHead" <<perception>> as eh
+  rectangle "FeatureExtractor" <<perception>> as fe
+  rectangle "StereoDepth /\nLandmarkExtractor" <<perception>> as le
+}
+
+package "Слой памяти (memory)" {
+  rectangle "TILM\n(NetworkX-граф)" <<memory>> as tilm
+  rectangle "TemporalMatcher" <<memory>> as tm
+}
+
+package "Оценивание (estimation)" {
+  rectangle "IMUPreintegrator" <<estimation>> as pre
+  rectangle "ErrorStateEKF" <<estimation>> as ekf
+}
+
+package "Планирование (planning)" {
+  rectangle "PathFollower" <<planning>> as pf
+  rectangle "AdaptiveCorridor" <<planning>> as ac
+  rectangle "RejoinPlanner" <<planning>> as rp
+}
+
+package "Runtime" {
+  rectangle "Pipeline" <<runtime>> as pl
+  rectangle "Monitor / Logger" <<runtime>> as mon
+}
+
+ml --> db : кадры,\nразметка
+cal --> ml : intrinsics
+db --> yolo : YOLO-датасет
+yolo --> fe
+eh --> fe
+fe --> tm : Detection +\nembedding
+fe --> le : depth + pose
+le --> tilm : Landmark
+tilm --> tm : кандидаты
+tm --> ekf : Match
+pre --> ekf : ΔR, Δv, Δp
+ekf --> pf : pose
+tilm --> ac : density
+ac --> pf : D_max
+pf --> rp : need rejoin?
+pf --> pl : waypoint
+pl --> mon : metrics
+
+@enduml

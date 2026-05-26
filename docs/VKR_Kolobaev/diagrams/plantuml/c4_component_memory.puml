@@ -1,0 +1,44 @@
+@startuml c4_component_memory
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam defaultFontName "Times New Roman"
+skinparam defaultFontSize 12
+skinparam component {
+  BackgroundColor #D5F5E3
+  BorderColor #1E8449
+}
+skinparam database {
+  BackgroundColor #FCF3CF
+  BorderColor #B7950B
+}
+
+title C4 Component: модуль памяти и сопоставления
+
+package "memory" {
+  [TILM\n(NetworkX-граф + SortedList\nпо arc_length)] as tilm
+  [TILMBuilder\n(EMA merge, prune)] as tb
+  [TemporalMatcher\n(cosine + threshold)] as tm
+  [PlaceDescriptor\n(NetVLAD-style 512-d)] as pd
+}
+
+database "tilm_route_NN.h5\n(сериализованная карта)" as h5
+
+[FeatureExtractor\n(upstream)] as fe
+[EKF (downstream)] as ekf
+[PathFollower\n(downstream)] as pf
+
+fe --> tb : в режиме MAPPING\nLandmark observations
+tb --> tilm : merge / add / prune
+tilm --> h5 : save on finalize
+h5 --> tilm : load on startup
+
+fe --> tm : в режиме GNSS_LOST\nDetection + embedding
+tm --> tilm : query_candidates(t±Δt)
+tilm --> tm : List<Landmark>
+tm --> ekf : Match (если score > τ)
+
+tilm --> pf : density(arc_length, R)
+tilm --> pd : при LOST →\nглобальный дескриптор сцены
+pd --> tm : кандидат восстановления
+
+@enduml

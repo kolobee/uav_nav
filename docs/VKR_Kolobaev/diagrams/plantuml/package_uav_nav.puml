@@ -1,0 +1,78 @@
+@startuml package_uav_nav
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam defaultFontName "Times New Roman"
+skinparam defaultFontSize 12
+skinparam package {
+  BackgroundColor #F4F6F7
+  BorderColor #2E4053
+}
+
+title Диаграмма пакетов uav_nav
+
+package "uav_nav" {
+  package "data" #FDF2E9 {
+    [midair_loader]
+    [calibration]
+    [dataset_builder]
+    [triplet_dataset]
+  }
+  package "perception" #D6EAF8 {
+    [yolo_segmenter]
+    [embedding_head]
+    [feature_extractor]
+    [stereo_depth]
+    [landmark_extractor]
+  }
+  package "memory" #D5F5E3 {
+    [tilm]
+    [tilm_builder]
+    [temporal_matcher]
+    [place_descriptor]
+  }
+  package "estimation" #FCF3CF {
+    [imu_preintegrator]
+    [ekf_vio]
+    [pose_utils]
+  }
+  package "planning" #E8DAEF {
+    [path_follower]
+    [adaptive_corridor]
+    [rejoin_planner]
+    [mission_modes]
+  }
+  package "runtime" #FADBD8 {
+    [pipeline]
+    [pseudo_simulator]
+    [monitor]
+    [logger]
+  }
+  package "deployment" #D1F2EB {
+    [export_onnx]
+    [export_ncnn]
+    [pi5_runtime]
+    [benchmark_pi5]
+  }
+  package "eval" #F9E79F {
+    [yolo_eval]
+    [embedding_eval]
+    [matching_eval]
+    [trajectory_eval]
+    [ablation]
+  }
+}
+
+[yolo_segmenter] --> [embedding_head]
+[embedding_head] --> [feature_extractor]
+[feature_extractor] --> [temporal_matcher]
+[temporal_matcher] --> [ekf_vio]
+[imu_preintegrator] --> [ekf_vio]
+[ekf_vio] --> [path_follower]
+[tilm] --> [temporal_matcher]
+[tilm] --> [adaptive_corridor]
+[adaptive_corridor] --> [path_follower]
+[path_follower] --> [rejoin_planner]
+[pipeline] -[hidden]-> [feature_extractor]
+[pipeline] -[hidden]-> [path_follower]
+
+@enduml

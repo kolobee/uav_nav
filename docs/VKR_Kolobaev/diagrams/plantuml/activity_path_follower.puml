@@ -1,0 +1,52 @@
+@startuml activity_path_follower
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam defaultFontName "Times New Roman"
+skinparam defaultFontSize 12
+skinparam activity {
+  BackgroundColor #E8DAEF
+  BorderColor #6C3483
+  DiamondBackgroundColor #FCF3CF
+  DiamondBorderColor #B7950B
+}
+
+title Activity: state machine ON_PATH / DEVIATED / RECOVERING / LOST
+
+start
+:Получить pose, detections, dt_since_loss;
+:Найти ближайший сегмент reference_path;
+:Вычислить e_xt (поперечная), e_at (продольная);
+:D_max := AdaptiveCorridor.compute(arc_length, tilm);
+
+if (state == ON_PATH?) then (да)
+  if (e_xt > 0.4 · D_max) then (да)
+    :state := DEVIATED;
+  endif
+elseif (state == DEVIATED) then (да)
+  if (e_xt > D_max) then (да)
+    :state := RECOVERING;
+  elseif (e_xt < 0.2 · D_max\n8 кадров подряд) then (да)
+    :state := ON_PATH;
+  endif
+elseif (state == RECOVERING) then (да)
+  :visible_match := любая детекция matched через TILM?;
+  if (visible_match И e_xt < D_max?) then (да)
+    :state := ON_PATH;
+  elseif (dt_in_state > T_lost = 12 с И НЕ visible_match?) then (да)
+    :state := LOST;
+  endif
+elseif (state == LOST) then (да)
+  :попытка глобальной\nрелокализации (PlaceDescriptor);
+  if (global_relocalize_success?) then (да)
+    :state := RECOVERING;
+  endif
+endif
+
+if (state == RECOVERING или LOST?) then (да)
+  :waypoint := RejoinPlanner.compute(pose, ref_path);
+else (нет)
+  :waypoint := look-ahead вдоль ref_path (1.5 с);
+endif
+:emit waypoint в полётный контроллер;
+stop
+@enduml

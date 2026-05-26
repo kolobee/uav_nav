@@ -1,0 +1,74 @@
+@startuml uml_class_perception
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam defaultFontName "Times New Roman"
+skinparam defaultFontSize 12
+skinparam class {
+  BackgroundColor #D6EAF8
+  BorderColor #1F618D
+  ArrowColor #1F618D
+}
+
+title Диаграмма классов модуля восприятия (uav_nav.perception)
+
+class YOLOSegmenter {
+  - backend: str  // ultralytics / onnx / ncnn
+  - weights: Path
+  - conf_threshold: float = 0.10
+  - iou_threshold: float = 0.45
+  + infer(rgb: np.ndarray): List[Detection]
+  + warmup(n: int = 5): None
+}
+
+class EmbeddingHead {
+  - backbone: MobileNetV3Small
+  - projection: nn.Sequential
+  + forward(crop: Tensor): Tensor  // (B, 128)
+  + load_weights(path: Path): None
+}
+
+class FeatureExtractor {
+  - segmenter: YOLOSegmenter
+  - embed: EmbeddingHead
+  - crop_size: int = 96
+  + process(rgb: np.ndarray): List[Detection]
+  - _mask_crop(rgb, mask, bbox): Tensor
+}
+
+class StereoDepth {
+  - sgbm: cv2.StereoSGBM
+  + compute(left, right): np.ndarray
+}
+
+class LandmarkExtractor {
+  - calibration: Calibration
+  + project_to_world(det: Detection, depth, pose): Landmark
+}
+
+class Detection {
+  + class_id: int
+  + class_name: str
+  + bbox: Tuple[int, int, int, int]
+  + mask: np.ndarray
+  + confidence: float
+  + embedding: np.ndarray  // (128,)
+  + centroid_uv: Tuple[float, float]
+  + area_px: int
+}
+
+class Landmark {
+  + id: int
+  + class_id: int
+  + embedding: np.ndarray
+  + position_world: np.ndarray
+  + observation_count: int
+  + confidence: float
+}
+
+FeatureExtractor o--> YOLOSegmenter
+FeatureExtractor o--> EmbeddingHead
+FeatureExtractor ..> Detection : creates
+LandmarkExtractor ..> Landmark : creates
+LandmarkExtractor --> Detection
+
+@enduml

@@ -1,0 +1,48 @@
+@startuml activity_mission_modes
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam defaultFontName "Times New Roman"
+skinparam defaultFontSize 12
+
+title Диаграмма состояний режимов миссии
+
+[*] --> NORMAL : старт системы\nс валидным GNSS
+
+state NORMAL {
+  [*] --> WAYPOINT_FOLLOWING
+  WAYPOINT_FOLLOWING --> WAYPOINT_FOLLOWING : GNSS OK\nIMU OK
+}
+
+state MAPPING {
+  [*] --> COLLECT_OBSERVATIONS
+  COLLECT_OBSERVATIONS --> COLLECT_OBSERVATIONS : add landmark
+  COLLECT_OBSERVATIONS --> FINALIZE : миссия завершена
+  FINALIZE --> [*] : TILM сохранён
+}
+
+state GNSS_LOST {
+  [*] --> ON_PATH
+  ON_PATH --> DEVIATED : e_xt > 0.4·D_max
+  DEVIATED --> ON_PATH : 8 кадров e_xt<0.2·D_max
+  DEVIATED --> RECOVERING : e_xt > D_max
+  RECOVERING --> ON_PATH : visible_match\nи в коридоре
+  RECOVERING --> LOST : 12 с без матча
+  LOST --> RECOVERING : глоб. релокализация
+}
+
+state RTH {
+}
+
+state EMERGENCY {
+}
+
+NORMAL --> MAPPING : оператор:\n«режим картографирования»
+MAPPING --> NORMAL : finalize done
+NORMAL --> GNSS_LOST : GNSS_outage > 1.5 с
+GNSS_LOST --> NORMAL : GNSS восстановлен\n(сходимость 3 с)
+GNSS_LOST --> RTH : LOST > 30 с\nи battery > 30%
+RTH --> EMERGENCY : battery < 15%\nили крит. отказ
+LOST --> EMERGENCY : battery < 15%
+EMERGENCY --> [*] : приземление\nили парашют
+
+@enduml

@@ -1,0 +1,37 @@
+@startuml c4_component_perception
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam defaultFontName "Times New Roman"
+skinparam defaultFontSize 12
+skinparam component {
+  BackgroundColor #D6EAF8
+  BorderColor #1F618D
+}
+
+title C4 Component: модуль восприятия
+
+package "perception" {
+  [YOLOSegmenter\n(ultralytics/onnx/ncnn)] as yolo
+  [EmbeddingHead\n(MobileNetV3-Small + projection)] as eh
+  [FeatureExtractor\n(оркестратор)] as fe
+  [StereoDepth\n(SGBM)] as sd
+  [LandmarkExtractor\n(projection to world)] as le
+}
+
+[Camera RGB] as cam
+[depth GT (validation)\nили SGBM (runtime)] as depth
+[Pose из EKF] as pose
+[TemporalMatcher\n(downstream)] as tm
+[TILMBuilder\n(downstream)] as tb
+
+cam --> yolo : 1024×1024 RGB →\nresize 640×640
+yolo --> fe : List<Detection>\n(bbox, mask, conf)
+fe --> eh : mask_crop 96×96\nL2-norm
+eh --> fe : embedding (128-d)
+fe --> tm : Detection +\nembedding
+fe --> le : centroid_uv,\nmask area
+depth --> le
+pose --> le
+le --> tb : Landmark\n(position_world)
+
+@enduml

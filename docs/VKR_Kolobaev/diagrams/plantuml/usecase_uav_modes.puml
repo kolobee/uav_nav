@@ -1,0 +1,65 @@
+@startuml usecase_uav_modes
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam defaultFontName "Times New Roman"
+skinparam defaultFontSize 13
+skinparam actor {
+  BackgroundColor #F4F6F7
+  BorderColor #2E4053
+}
+skinparam usecase {
+  BackgroundColor #D6EAF8
+  BorderColor #1F618D
+}
+
+title Use Case: режимы эксплуатации системы навигации
+
+left to right direction
+
+actor "Оператор\nназемной станции" as op
+actor "БПЛА\n(полётный\nконтроллер)" as uav
+actor "Приёмник\nГНСС" as gps
+actor "Бортовая\nкамера" as cam
+actor "IMU" as imu
+
+rectangle "Система uav_nav" {
+  usecase "Запуск миссии\nкартографирования" as uc_map
+  usecase "Полёт по\nреференс-маршруту\n(NORMAL)" as uc_normal
+  usecase "Навигация при\nпотере GNSS\n(GNSS_LOST)" as uc_lost
+  usecase "Возврат на\nреференс-маршрут\n(RECOVERING)" as uc_rec
+  usecase "Глобальная\nрелокализация\n(LOST)" as uc_relo
+  usecase "Возврат на базу\n(RTH)" as uc_rth
+  usecase "Аварийная посадка\n(EMERGENCY)" as uc_emerg
+  usecase "Просмотр\nтелеметрии" as uc_tlm
+}
+
+op --> uc_map
+op --> uc_normal
+op --> uc_tlm
+op --> uc_rth
+
+cam --> uc_normal
+cam --> uc_lost
+cam --> uc_rec
+cam --> uc_relo
+
+imu --> uc_normal
+imu --> uc_lost
+imu --> uc_rec
+
+gps --> uc_normal
+gps --> uc_map
+
+uc_normal ..> uc_lost : <<extends>>\nGNSS_outage > 1.5 с
+uc_lost ..> uc_rec : <<includes>>\nпри e_xt > D_max
+uc_rec ..> uc_relo : <<extends>>\nT_lost > 12 с
+uc_relo ..> uc_rth : <<extends>>\n> 30 с в LOST
+uc_rth ..> uc_emerg : <<extends>>\nbattery < 15 %
+
+uc_normal --> uav : waypoint
+uc_lost --> uav : waypoint
+uc_rec --> uav : waypoint
+uc_rth --> uav : waypoint
+uc_emerg --> uav : land
+
+@enduml
