@@ -80,11 +80,51 @@ class MatchingEvaluator:
 
         Returns:
             MatchingMetrics with precision, recall, and position error stats.
-
-        Raises:
-            NotImplementedError: Not yet implemented.
         """
-        raise NotImplementedError("MatchingEvaluator.evaluate is not yet implemented.")
+        query_positions_gt = np.asarray(query_positions_gt, dtype=np.float64)
+        match_positions = np.asarray(match_positions, dtype=np.float64)
+        match_valid = np.asarray(match_valid, dtype=bool)
+
+        N = len(query_positions_gt)
+        n_matched = int(match_valid.sum())
+
+        if n_matched == 0:
+            return MatchingMetrics(
+                n_total_queries=N,
+                n_successful_matches=0,
+                n_correct_matches=0,
+            )
+
+        valid_gt = query_positions_gt[match_valid]
+        valid_pred = match_positions[match_valid]
+        errors = np.linalg.norm(valid_pred - valid_gt, axis=1)
+
+        is_correct = errors <= self.position_tolerance
+        n_correct = int(is_correct.sum())
+
+        precision = n_correct / n_matched
+        recall = n_correct / N
+        f1 = (2.0 * precision * recall / (precision + recall)
+              if (precision + recall) > 0.0 else 0.0)
+        fpr = (n_matched - n_correct) / N if N > 0 else 0.0
+
+        mean_lat = 0.0
+        if latencies_ms is not None and len(latencies_ms) > 0:
+            mean_lat = float(np.asarray(latencies_ms, dtype=np.float64).mean())
+
+        return MatchingMetrics(
+            precision=precision,
+            recall=recall,
+            f1=f1,
+            position_error_mean=float(errors.mean()),
+            position_error_rmse=float(np.sqrt((errors ** 2).mean())),
+            position_error_max=float(errors.max()),
+            false_positive_rate=fpr,
+            n_total_queries=N,
+            n_successful_matches=n_matched,
+            n_correct_matches=n_correct,
+            mean_latency_ms=mean_lat,
+        )
 
     def precision_recall_curve(
         self,
@@ -93,16 +133,32 @@ class MatchingEvaluator:
     ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Compute a precision-recall curve over varying score thresholds.
 
+        Sorts queries by score descending and computes cumulative precision
+        and recall at each threshold.
+
         Args:
             scores: Match confidence scores, shape (N,).
             is_correct: Boolean ground-truth correctness, shape (N,).
 
         Returns:
-            Tuple (precision, recall, thresholds) arrays.
-
-        Raises:
-            NotImplementedError: Not yet implemented.
+            Tuple (precision, recall, thresholds) where each array has
+            shape (N,). Threshold array is sorted descending.
         """
-        raise NotImplementedError(
-            "MatchingEvaluator.precision_recall_curve is not yet implemented."
-        )
+        scores = np.asarray(scores, dtype=np.float64)
+        is_correct = np.asarray(is_correct, dtype=bool)
+
+        if len(scores) == 0:
+            empty = np.zeros(0, dtype=np.float64)
+            return empty, empty, empty
+
+        order = np.argsort(-scores)
+        sorted_correct = is_correct[order].astype(np.float64)
+        sorted_scores = scores[order]
+
+        cumulative_correct = np.cumsum(sorted_correct)
+        cumulative_total = np.arange(1, len(scores) + 1, dtype=np.float64)
+        n_positive = max(int(is_correct.sum()), 1)
+
+        precision = cumulative_correct / cumulative_total
+        recall = cumulative_correct / n_positive
+        return precision, recall, sorted_scores
