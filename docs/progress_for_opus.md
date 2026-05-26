@@ -272,6 +272,37 @@ Recall@1 ниже порога из-за большой галереи (3359) и
 
 ---
 
+## Этап 6 — Matching + EKF-коррекции
+
+**Статус:** ✅ Завершён (2026-05-26)
+
+### Что реализовано
+
+| Модуль | Описание |
+|---|---|
+| `runtime/matching_corrector.py` | `MatchingCorrector` — TILM→EKF мост: state machine GNSS/TILM, confidence gate, correction interval throttle, `CorrectorStats` |
+| `eval/matching_eval.py` | `MatchingEvaluator.evaluate()` — precision/recall/F1/RMSE; `precision_recall_curve()` |
+
+### Алгоритм MatchingCorrector
+
+```
+GNSS_ACTIVE:  update_gnss(position, accuracy) → EKF
+GNSS_LOST:    match(observations, prior=ekf.position)
+                → is_valid AND confidence >= min_confidence
+                AND elapsed >= correction_interval
+                → update_landmark(correction_ned) → EKF
+```
+
+**Ключевые параметры:**
+- `min_confidence=0.3` — порог уверенности матчинга
+- `correction_interval=1.0` — минимальный интервал между коррекциями (с)
+
+### Тесты
+
+**41/41 passed** (CorrectorStats×5, Mode×4, GNSS×5, TILM×6, Confidence×2, Interval×3, NoObs×2, ResetStats×1, MatchingEvaluator×8, PR-curve×5)
+
+---
+
 ## Текущий стек архитектурных решений
 
 | ID | Решение | Обоснование |
@@ -322,6 +353,7 @@ vkr/
 │   │   ├── mission_modes.py        # stub → этап 7
 │   │   └── rejoin_planner.py       # stub → этап 7
 │   ├── runtime/
+│   │   ├── matching_corrector.py   # ✅ MatchingCorrector TILM→EKF (этап 6)
 │   │   ├── pipeline.py             # stub → этап 7
 │   │   ├── pseudo_simulator.py     # stub → этап 7
 │   │   ├── airsim_bridge.py        # stub (опционально)
@@ -336,7 +368,7 @@ vkr/
 │   │   ├── yolo_eval.py            # ✅ Cross-weather mAP
 │   │   ├── embedding_eval.py       # ✅ ROC AUC, Recall@K, discriminability
 │   │   ├── trajectory_eval.py      # stub → этап 9 (ATE/RPE с evo)
-│   │   ├── matching_eval.py        # stub → этап 6
+│   │   ├── matching_eval.py        # ✅ MatchingEvaluator (этап 6)
 │   │   ├── scenario_runner.py      # stub → этап 9
 │   │   └── ablation.py             # stub → этап 9
 │   └── scripts/
@@ -378,7 +410,7 @@ vkr/
     └── decisions.md                # Design decisions
 ```
 
-**Тесты:** 130/130 passed (этапы 0–5: test_pose_utils×15, test_place_descriptor×5, test_path_follower_config×10, test_embedding_head×15, test_yolo_segmenter×23, test_imu_preintegrator×14, test_ekf_vio×20, test_tilm×43).
+**Тесты:** 171/171 passed (этапы 0–5: test_pose_utils×15, test_place_descriptor×5, test_path_follower_config×10, test_embedding_head×15, test_yolo_segmenter×23, test_imu_preintegrator×14, test_ekf_vio×20, test_tilm×43).
 
 ---
 
@@ -392,7 +424,7 @@ vkr/
 | 3 | Embedding-голова | ✅ Завершён (ROC AUC=0.983, Recall@1=0.118, Discriminability=8.46) |
 | 4 | Базовый VIO (EKF) | ✅ Завершён (49/49 тестов: IMUPreintegrator, EKFVIO, pose_utils) |
 | 5 | TILM | ✅ Завершён (43/43 тестов: TILM, TILMBuilder, TemporalMatcher, LandmarkExtractor) |
-| 6 | Matching + EKF-коррекции | 📋 Не начат |
+| 6 | Matching + EKF-коррекции | ✅ Завершён (41/41 тестов: MatchingCorrector, MatchingEvaluator) |
 | 7 | Path-follower + Pseudo-simulator | 📋 Не начат |
 | 8 | Pi5 deployment | 📋 Не начат |
 | 9 | Ablation studies | 📋 Не начат |
