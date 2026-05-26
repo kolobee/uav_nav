@@ -1,24 +1,27 @@
 """IMU pre-integration on the SO(3) manifold.
 
-Implements the IMU pre-integration theory from Forster et al. (2017)
+Implements a simplified version of Forster et al. (2017)
 "On-Manifold Preintegration for Real-Time Visual-Inertial Odometry"
 (IEEE TRO). Pre-integrates accelerometer and gyroscope measurements
 between two keyframes without re-integrating from the start.
+
+Integration uses first-order Euler on SO(3). Covariance is propagated
+using a diagonal noise model (sufficient for thesis-level evaluation).
 """
 
 from __future__ import annotations
 
+import copy
 from dataclasses import dataclass, field
 
 import numpy as np
+
+from uav_nav.estimation.pose_utils import so3_exp, skew
 
 
 @dataclass
 class PreintegratedState:
     """Pre-integrated IMU state between two keyframes.
-
-    Represents the change in rotation, velocity, and position accumulated
-    from integrating IMU measurements.
 
     Attributes:
         delta_R: Pre-integrated rotation increment, shape (3, 3), SO(3).
@@ -26,7 +29,7 @@ class PreintegratedState:
         delta_p: Pre-integrated position increment, shape (3,), m.
         dt: Total integration time in seconds.
         n_samples: Number of IMU samples integrated.
-        cov: Covariance of the pre-integrated state, shape (9, 9).
+        cov: Covariance of [Δp, Δv, Δθ], shape (9, 9).
         bias_acc: Accelerometer bias at integration time, shape (3,).
         bias_gyro: Gyroscope bias at integration time, shape (3,).
         Ja_R: Jacobian of delta_R w.r.t. acc bias, shape (3, 3).
@@ -37,20 +40,20 @@ class PreintegratedState:
         Jg_p: Jacobian of delta_p w.r.t. gyro bias, shape (3, 3).
     """
 
-    delta_R: np.ndarray = field(default_factory=lambda: np.eye(3))   # (3, 3)
-    delta_v: np.ndarray = field(default_factory=lambda: np.zeros(3))  # (3,)
-    delta_p: np.ndarray = field(default_factory=lambda: np.zeros(3))  # (3,)
+    delta_R: np.ndarray = field(default_factory=lambda: np.eye(3, dtype=np.float64))
+    delta_v: np.ndarray = field(default_factory=lambda: np.zeros(3, dtype=np.float64))
+    delta_p: np.ndarray = field(default_factory=lambda: np.zeros(3, dtype=np.float64))
     dt: float = 0.0
     n_samples: int = 0
-    cov: np.ndarray = field(default_factory=lambda: np.zeros((9, 9)))
-    bias_acc: np.ndarray = field(default_factory=lambda: np.zeros(3))
-    bias_gyro: np.ndarray = field(default_factory=lambda: np.zeros(3))
-    Ja_R: np.ndarray = field(default_factory=lambda: np.zeros((3, 3)))
-    Ja_v: np.ndarray = field(default_factory=lambda: np.zeros((3, 3)))
-    Ja_p: np.ndarray = field(default_factory=lambda: np.zeros((3, 3)))
-    Jg_R: np.ndarray = field(default_factory=lambda: np.zeros((3, 3)))
-    Jg_v: np.ndarray = field(default_factory=lambda: np.zeros((3, 3)))
-    Jg_p: np.ndarray = field(default_factory=lambda: np.zeros((3, 3)))
+    cov: np.ndarray = field(default_factory=lambda: np.zeros((9, 9), dtype=np.float64))
+    bias_acc: np.ndarray = field(default_factory=lambda: np.zeros(3, dtype=np.float64))
+    bias_gyro: np.ndarray = field(default_factory=lambda: np.zeros(3, dtype=np.float64))
+    Ja_R: np.ndarray = field(default_factory=lambda: np.zeros((3, 3), dtype=np.float64))
+    Ja_v: np.ndarray = field(default_factory=lambda: np.zeros((3, 3), dtype=np.float64))
+    Ja_p: np.ndarray = field(default_factory=lambda: np.zeros((3, 3), dtype=np.float64))
+    Jg_R: np.ndarray = field(default_factory=lambda: np.zeros((3, 3), dtype=np.float64))
+    Jg_v: np.ndarray = field(default_factory=lambda: np.zeros((3, 3), dtype=np.float64))
+    Jg_p: np.ndarray = field(default_factory=lambda: np.zeros((3, 3), dtype=np.float64))
 
     def correct_for_bias_update(
         self,
@@ -65,13 +68,14 @@ class PreintegratedState:
 
         Returns:
             New PreintegratedState with corrected increments.
-
-        Raises:
-            NotImplementedError: Not yet implemented.
         """
-        raise NotImplementedError(
-            "PreintegratedState.correct_for_bias_update is not yet implemented."
-        )
+        corrected = copy.copy(self)
+        corrected.delta_R = self.delta_R @ so3_exp(self.Jg_R @ delta_bg)
+        corrected.delta_v = self.delta_v + self.Ja_v @ delta_ba + self.Jg_v @ delta_bg
+        corrected.delta_p = self.delta_p + self.Ja_p @ delta_ba + self.Jg_p @ delta_bg
+        corrected.bias_acc = self.bias_acc + delta_ba
+        corrected.bias_gyro = self.bias_gyro + delta_bg
+        return corrected
 
 
 class IMUPreintegrator:
@@ -98,7 +102,8 @@ class IMUPreintegrator:
         self.noise_bias_acc = noise_bias_acc
         self.noise_bias_gyro = noise_bias_gyro
         self.gravity_ned = (
-            gravity_ned if gravity_ned is not None else np.array([0.0, 0.0, 9.81])
+            gravity_ned if gravity_ned is not None
+            else np.array([0.0, 0.0, 9.81], dtype=np.float64)
         )
         self._state: PreintegratedState = PreintegratedState()
 
@@ -108,11 +113,11 @@ class IMUPreintegrator:
         Args:
             bias_acc: Current accelerometer bias estimate, shape (3,).
             bias_gyro: Current gyroscope bias estimate, shape (3,).
-
-        Raises:
-            NotImplementedError: Not yet implemented.
         """
-        raise NotImplementedError("IMUPreintegrator.reset is not yet implemented.")
+        self._state = PreintegratedState(
+            bias_acc=np.array(bias_acc, dtype=np.float64),
+            bias_gyro=np.array(bias_gyro, dtype=np.float64),
+        )
 
     def integrate(
         self,
@@ -120,26 +125,52 @@ class IMUPreintegrator:
         gyro: np.ndarray,
         dt: float,
     ) -> None:
-        """Integrate a single IMU measurement.
+        """Integrate a single IMU measurement (Euler on SO(3)).
 
-        Uses the Euler (or mid-point) method to update the pre-integrated
-        state and propagate the covariance.
+        Removes bias, integrates delta_R/v/p, propagates covariance.
 
         Args:
             acc: Accelerometer measurement, shape (3,), m/s^2.
             gyro: Gyroscope measurement, shape (3,), rad/s.
             dt: Time step in seconds.
-
-        Raises:
-            NotImplementedError: Not yet implemented.
         """
-        raise NotImplementedError("IMUPreintegrator.integrate is not yet implemented.")
+        s = self._state
+        a = np.asarray(acc, dtype=np.float64) - s.bias_acc
+        w = np.asarray(gyro, dtype=np.float64) - s.bias_gyro
+
+        # Rotation increment on SO(3) (Euler)
+        dR = so3_exp(w * dt)
+
+        # Pre-integrated increments (Euler, using old delta_R)
+        new_delta_p = s.delta_p + s.delta_v * dt + 0.5 * (s.delta_R @ a) * dt**2
+        new_delta_v = s.delta_v + (s.delta_R @ a) * dt
+        new_delta_R = s.delta_R @ dR
+
+        # First-order Jacobians for bias correction (accumulated)
+        # Jg_R: ∂ΔR/∂δbg ≈ accumulated -I*dt (gyro bias → rotation error)
+        s.Jg_R = s.Jg_R - np.eye(3) * dt
+        # Ja_v: ∂Δv/∂δba ≈ accumulated -ΔR*dt
+        s.Ja_v = s.Ja_v - s.delta_R * dt
+        # Ja_p: ∂Δp/∂δba (from velocity integration)
+        s.Ja_p = s.Ja_p + s.Ja_v * dt
+
+        # Covariance propagation (diagonal noise model, indices: [Δp(0:3), Δv(3:6), Δθ(6:9)])
+        # Discrete noise variance: σ² * dt (noise density → variance per step)
+        s.cov[0:3, 0:3] += self.noise_acc**2 * (0.5 * dt**2)**2 * np.eye(3)
+        s.cov[3:6, 3:6] += self.noise_acc**2 * dt**2 * np.eye(3)
+        s.cov[6:9, 6:9] += self.noise_gyro**2 * dt**2 * np.eye(3)
+
+        s.delta_R = new_delta_R
+        s.delta_v = new_delta_v
+        s.delta_p = new_delta_p
+        s.dt += dt
+        s.n_samples += 1
 
     def get_state(self) -> PreintegratedState:
-        """Return the current pre-integrated state.
+        """Return the current pre-integrated state (not a copy).
 
         Returns:
-            A copy of the current PreintegratedState.
+            Current PreintegratedState.
         """
         return self._state
 
@@ -151,15 +182,23 @@ class IMUPreintegrator:
     ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Propagate a pose forward using the pre-integrated state.
 
+        Applies standard IMU kinematic equations in NED frame:
+            p1 = p0 + v0*Δt + 0.5*g*Δt² + R0 @ Δp
+            v1 = v0 + g*Δt + R0 @ Δv
+            R1 = R0 @ ΔR
+
         Args:
-            R0: Initial rotation matrix, shape (3, 3).
-            v0: Initial velocity in world frame, shape (3,).
-            p0: Initial position in world frame, shape (3,).
+            R0: Initial rotation matrix (body-to-NED), shape (3, 3).
+            v0: Initial velocity in NED frame, shape (3,), m/s.
+            p0: Initial position in NED frame, shape (3,), m.
 
         Returns:
-            Tuple (R1, v1, p1) predicted rotation, velocity, and position.
-
-        Raises:
-            NotImplementedError: Not yet implemented.
+            Tuple (R1, v1, p1) — predicted rotation, velocity, and position.
         """
-        raise NotImplementedError("IMUPreintegrator.predict_pose is not yet implemented.")
+        s = self._state
+        g = self.gravity_ned
+        dt = s.dt
+        R1 = R0 @ s.delta_R
+        v1 = v0 + g * dt + R0 @ s.delta_v
+        p1 = p0 + v0 * dt + 0.5 * g * dt**2 + R0 @ s.delta_p
+        return R1, v1, p1

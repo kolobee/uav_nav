@@ -43,18 +43,31 @@ def so3_exp(omega: np.ndarray) -> np.ndarray:
 
 
 def so3_log(R: np.ndarray) -> np.ndarray:
-    """Logarithm map from SO(3) to so(3).
+    """Logarithm map from SO(3) to so(3) (inverse Rodrigues).
 
     Args:
         R: Rotation matrix, shape (3, 3).
 
     Returns:
-        Rotation vector, shape (3,).
-
-    Raises:
-        NotImplementedError: Not yet implemented for edge cases.
+        Rotation vector (axis-angle), shape (3,).
     """
-    raise NotImplementedError("so3_log is not yet implemented.")
+    cos_theta = np.clip((np.trace(R) - 1.0) / 2.0, -1.0, 1.0)
+    theta = float(np.arccos(cos_theta))
+    if theta < 1e-9:
+        return np.zeros(3, dtype=np.float64)
+    if np.pi - theta < 1e-6:
+        # Near 180°: extract axis from symmetric part (R + Rᵀ)/2 = I + cos(θ)(I - ω⊗ω)
+        B = (R + R.T) / 2.0 - cos_theta * np.eye(3)
+        i = int(np.argmax(np.diag(B)))
+        denom = float(B[i, i] * (1.0 - cos_theta))
+        omega = B[:, i] / np.sqrt(max(denom, 1e-30))
+        return theta * omega / float(np.linalg.norm(omega))
+    factor = theta / (2.0 * np.sin(theta))
+    return factor * np.array([
+        R[2, 1] - R[1, 2],
+        R[0, 2] - R[2, 0],
+        R[1, 0] - R[0, 1],
+    ], dtype=np.float64)
 
 
 def se3_exp(xi: np.ndarray) -> np.ndarray:
@@ -65,11 +78,22 @@ def se3_exp(xi: np.ndarray) -> np.ndarray:
 
     Returns:
         Homogeneous transform matrix, shape (4, 4).
-
-    Raises:
-        NotImplementedError: Not yet implemented.
     """
-    raise NotImplementedError("se3_exp is not yet implemented.")
+    rho = xi[:3]
+    omega = xi[3:]
+    R = so3_exp(omega)
+    theta = float(np.linalg.norm(omega))
+    if theta < 1e-9:
+        V = np.eye(3)
+    else:
+        K = skew(omega / theta)
+        V = (np.eye(3)
+             + (1.0 - np.cos(theta)) / theta * K
+             + (theta - np.sin(theta)) / theta * (K @ K))
+    T = np.eye(4)
+    T[:3, :3] = R
+    T[:3, 3] = V @ rho
+    return T
 
 
 def se3_log(T: np.ndarray) -> np.ndarray:
@@ -114,11 +138,55 @@ def rot_to_quat(R: np.ndarray) -> np.ndarray:
 
     Returns:
         Unit quaternion (w, x, y, z), shape (4,).
-
-    Raises:
-        NotImplementedError: Not yet implemented.
     """
-    raise NotImplementedError("rot_to_quat is not yet implemented.")
+    trace = R[0, 0] + R[1, 1] + R[2, 2]
+    if trace > 0.0:
+        s = 0.5 / np.sqrt(trace + 1.0)
+        w = 0.25 / s
+        x = (R[2, 1] - R[1, 2]) * s
+        y = (R[0, 2] - R[2, 0]) * s
+        z = (R[1, 0] - R[0, 1]) * s
+    elif R[0, 0] > R[1, 1] and R[0, 0] > R[2, 2]:
+        s = 2.0 * np.sqrt(1.0 + R[0, 0] - R[1, 1] - R[2, 2])
+        w = (R[2, 1] - R[1, 2]) / s
+        x = 0.25 * s
+        y = (R[0, 1] + R[1, 0]) / s
+        z = (R[0, 2] + R[2, 0]) / s
+    elif R[1, 1] > R[2, 2]:
+        s = 2.0 * np.sqrt(1.0 + R[1, 1] - R[0, 0] - R[2, 2])
+        w = (R[0, 2] - R[2, 0]) / s
+        x = (R[0, 1] + R[1, 0]) / s
+        y = 0.25 * s
+        z = (R[1, 2] + R[2, 1]) / s
+    else:
+        s = 2.0 * np.sqrt(1.0 + R[2, 2] - R[0, 0] - R[1, 1])
+        w = (R[1, 0] - R[0, 1]) / s
+        x = (R[0, 2] + R[2, 0]) / s
+        y = (R[1, 2] + R[2, 1]) / s
+        z = 0.25 * s
+    q = np.array([w, x, y, z], dtype=np.float64)
+    return q / float(np.linalg.norm(q))
+
+
+def quat_mult(q1: np.ndarray, q2: np.ndarray) -> np.ndarray:
+    """Hamilton product of two unit quaternions (w, x, y, z).
+
+    Args:
+        q1: First quaternion, shape (4,).
+        q2: Second quaternion, shape (4,).
+
+    Returns:
+        Product quaternion, shape (4,), unit norm.
+    """
+    w1, x1, y1, z1 = float(q1[0]), float(q1[1]), float(q1[2]), float(q1[3])
+    w2, x2, y2, z2 = float(q2[0]), float(q2[1]), float(q2[2]), float(q2[3])
+    q = np.array([
+        w1*w2 - x1*x2 - y1*y2 - z1*z2,
+        w1*x2 + x1*w2 + y1*z2 - z1*y2,
+        w1*y2 - x1*z2 + y1*w2 + z1*x2,
+        w1*z2 + x1*y2 - y1*x2 + z1*w2,
+    ], dtype=np.float64)
+    return q / float(np.linalg.norm(q))
 
 
 def ned_to_enu(ned: np.ndarray) -> np.ndarray:
@@ -165,11 +233,16 @@ def interpolate_poses(
 
     Returns:
         Interpolated pose, shape (4, 4).
-
-    Raises:
-        NotImplementedError: Not yet implemented.
     """
-    raise NotImplementedError("interpolate_poses is not yet implemented.")
+    p = (1.0 - alpha) * T0[:3, 3] + alpha * T1[:3, 3]
+    R0 = T0[:3, :3]
+    R1 = T1[:3, :3]
+    omega = so3_log(R0.T @ R1)
+    R_interp = R0 @ so3_exp(alpha * omega)
+    T = np.eye(4, dtype=np.float64)
+    T[:3, :3] = R_interp
+    T[:3, 3] = p
+    return T
 
 
 def compute_relative_pose(T_a: np.ndarray, T_b: np.ndarray) -> np.ndarray:
