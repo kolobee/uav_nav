@@ -146,7 +146,7 @@ Pi5 FPS benchmark: не проводился (нет оборудования). 
 
 ## Этап 3 — Embedding-голова
 
-**Статус:** 🔄 В процессе (обучение запущено 2026-05-26)
+**Статус:** ✅ Завершён (2026-05-26)
 
 ### Архитектурные решения
 
@@ -210,6 +210,68 @@ Recall@1 ниже порога из-за большой галереи (3359) и
 
 ---
 
+## Этап 4 — Базовый VIO (EKF)
+
+**Статус:** ✅ Завершён (2026-05-26)
+
+### Что реализовано
+
+| Модуль | Описание |
+|---|---|
+| `estimation/pose_utils.py` | `so3_exp`, `so3_log`, `skew`, `quat_to_rot`, `rot_to_quat`, `quat_mult`, `se3_exp`, `interpolate_poses` |
+| `estimation/imu_preintegrator.py` | `IMUPreintegrator` — интеграция на SO(3), якобианы поправок смещений, `PreintegratedState.correct_for_bias_update()` |
+| `estimation/ekf_vio.py` | `EKFState` (quaternion + P=18×18), `EKFVIO` — propagate (F=18×18), update_gnss, update_landmark (Joseph form), update_visual (NotImplementedError) |
+
+### Ключевые решения
+
+| Решение | Выбор | Обоснование |
+|---|---|---|
+| Error-state EKF | 15-DoF активное состояние (δp, δv, δθ, δba, δbg) + 3 reserved | P=18×18 по спецификации проекта |
+| IMU интеграция | Euler на SO(3) с δt | Достаточная точность при 100 Hz IMU |
+| Bias correction | Первый порядок по якобианам Jg_R, Ja_v, Ja_p | Стандарт для IMU preintegration |
+| Landmark update | `z = p_nominal + correction → innovation = correction` | Связка с TemporalMatcher.position_correction_ned |
+| Covariance update | Joseph form `(I−KH)P(I−KH)ᵀ + KRKᵀ` | Численная стабильность |
+
+### Тесты
+
+**49/49 passed** (test_imu_preintegrator: 14, test_ekf_vio: 20, test_pose_utils: 15)
+
+---
+
+## Этап 5 — TILM
+
+**Статус:** ✅ Завершён (2026-05-26)
+
+### Что реализовано
+
+| Модуль | Описание |
+|---|---|
+| `memory/tilm.py` | `TILM` — NetworkX DiGraph, add_node/add_edge, nearest_node (k-NN), shortest_path, save/load (pickle) |
+| `memory/tilm_builder.py` | `TILMBuilder` — process_frame: создание узла по distance/landmark threshold, sequential edges, loop closure по place_descriptor cosine sim |
+| `memory/temporal_matcher.py` | `TemporalMatcher` — brute-force descriptor index, voting-based candidate retrieval, greedy geometric verification, position_correction_ned |
+| `perception/landmark_extractor.py` | `LandmarkExtractor.extract()` — из SegmentationResult+DepthResult → список Landmark с 3D позицией и дескриптором |
+
+### Алгоритм TemporalMatcher
+
+1. **Индекс**: все дескрипторы TILM → матрица (N_entries, D)
+2. **Голосование**: каждое наблюдение голосует за узел с наибольшим cos-similarity (same class only)
+3. **Top-K кандидатов**: по числу голосов, опционально взвешено близостью к position_prior
+4. **Geometric verify**: жадный матчинг по cos-sim ≥ (1 − threshold), same class
+5. **Коррекция**: `correction = best_node.position_ned − position_prior`
+
+### LandmarkExtractor.extract()
+
+1. Сортировка по confidence desc
+2. Фильтр по классу (valid_classes) и площади маски (min_mask_area)
+3. Центроид маски → depth по nanpercentile → `_unproject()` → position_3d
+4. `_crop_and_embed()`: bbox маски + 20% padding, фон → gray 127, resize 96×96 → EmbeddingHead
+
+### Тесты
+
+**43/43 passed** (TestTILMBasic×7, TestTILMEdge×2, TestTILMNearestNode×5, TestTILMShortestPath×2, TestTILMSaveLoad×1, TestTILMNode×2, TestTILMBuilderNodeCreation×7, TestTILMBuilderLoopClosure×2, TestTemporalMatcher×12, TestMatchResult×2)
+
+---
+
 ## Текущий стек архитектурных решений
 
 | ID | Решение | Обоснование |
@@ -243,16 +305,16 @@ vkr/
 │   │   ├── yolo_segmenter.py       # ✅ YOLOv8n-seg inference wrapper
 │   │   ├── embedding_head.py       # ✅ MobileNetV3-Small + LayerNorm → 128d
 │   │   ├── feature_extractor.py    # ✅ YOLO + EmbeddingHead → Detection
-│   │   ├── landmark_extractor.py   # stub → этап 5 (TILM)
+│   │   ├── landmark_extractor.py   # ✅ LandmarkExtractor (этап 5)
 │   │   └── stereo_depth.py         # stub (MidAir pinhole, нет стерео)
 │   ├── memory/
-│   │   ├── tilm.py                 # stub → этап 5
-│   │   ├── tilm_builder.py         # stub → этап 5
-│   │   ├── temporal_matcher.py     # stub → этап 6
+│   │   ├── tilm.py                 # ✅ TILM — NetworkX граф (этап 5)
+│   │   ├── tilm_builder.py         # ✅ TILMBuilder — инкрементальная сборка (этап 5)
+│   │   ├── temporal_matcher.py     # ✅ TemporalMatcher — descriptor matching (этап 5)
 │   │   └── place_descriptor.py     # ✅ PlaceDescriptor (тесты проходят)
 │   ├── estimation/
-│   │   ├── imu_preintegrator.py    # stub → этап 4
-│   │   ├── ekf_vio.py              # stub → этап 4
+│   │   ├── imu_preintegrator.py    # ✅ IMUPreintegrator — SO(3) (этап 4)
+│   │   ├── ekf_vio.py              # ✅ EKFVIO — Error-State EKF 18×18 (этап 4)
 │   │   └── pose_utils.py           # ✅ SE3/quaternion utils (тесты проходят)
 │   ├── planning/
 │   │   ├── path_follower.py        # ✅ PathFollower (тесты проходят)
@@ -316,7 +378,7 @@ vkr/
     └── decisions.md                # Design decisions
 ```
 
-**Тесты:** 38/38 passed (test_embedding_head×15, test_yolo_segmenter×23, + test_midair_loader, test_pose_utils, test_place_descriptor, test_path_follower_config).
+**Тесты:** 130/130 passed (этапы 0–5: test_pose_utils×15, test_place_descriptor×5, test_path_follower_config×10, test_embedding_head×15, test_yolo_segmenter×23, test_imu_preintegrator×14, test_ekf_vio×20, test_tilm×43).
 
 ---
 
@@ -328,8 +390,8 @@ vkr/
 | 1 | Data Layer | ✅ Завершён |
 | 2 | YOLO + Бенчмарки | ✅ Завершён |
 | 3 | Embedding-голова | ✅ Завершён (ROC AUC=0.983, Recall@1=0.118, Discriminability=8.46) |
-| 4 | Базовый VIO (EKF) | 📋 Не начат |
-| 5 | TILM | 📋 Не начат |
+| 4 | Базовый VIO (EKF) | ✅ Завершён (49/49 тестов: IMUPreintegrator, EKFVIO, pose_utils) |
+| 5 | TILM | ✅ Завершён (43/43 тестов: TILM, TILMBuilder, TemporalMatcher, LandmarkExtractor) |
 | 6 | Matching + EKF-коррекции | 📋 Не начат |
 | 7 | Path-follower + Pseudo-simulator | 📋 Не начат |
 | 8 | Pi5 deployment | 📋 Не начат |
