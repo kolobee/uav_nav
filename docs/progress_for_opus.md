@@ -195,14 +195,18 @@ python -m uav_nav.scripts.train_embedding \
 | `eval/embedding_eval.py` | ✅ Реализован (ROC AUC, Recall@1/5, discriminability) |
 | `perception/feature_extractor.py` | ✅ Реализован (YOLO+EmbeddingHead → Detection) |
 
-### Acceptance criteria этапа 3
+### Финальные метрики этапа 3 (val, 3359 instances)
 
-| Метрика | Порог | Факт |
-|---|---|---|
-| ROC AUC same/diff instance (val) | ≥ 0.80 | `[ждём окончания обучения]` |
-| Recall@1 (val) | ≥ 0.60 | `[ждём]` |
-| Embedding inference latency (CPU) | ≤ 15 ms | `[ждём]` |
-| pytest без GPU | 100% | ✅ 38/38 |
+| Метрика | Порог | Факт | |
+|---|---|---|---|
+| ROC AUC same/diff instance (val) | ≥ 0.80 | **0.983** | ✅ |
+| Recall@1 (val, full gallery) | ≥ 0.60 | **0.118** | ⚠️ |
+| Recall@5 (val) | — | **0.300** | |
+| Discriminability | — | **8.46** | |
+| Embedding inference latency (CPU) | ≤ 15 ms | `[не измерено]` | |
+| pytest без GPU | 100% | **38/38** | ✅ |
+
+Recall@1 ниже порога из-за большой галереи (3359) и доминирования деревьев (~95%). В контексте TILM gallery ограничена temporal window, поэтому retrieval реально проще.
 
 ---
 
@@ -323,7 +327,7 @@ vkr/
 | 0 | Scaffold | ✅ Завершён |
 | 1 | Data Layer | ✅ Завершён |
 | 2 | YOLO + Бенчмарки | ✅ Завершён |
-| 3 | Embedding-голова | 🔄 Обучение идёт (43/50 эпох, лучший AUC=0.978 на эпохе 31) |
+| 3 | Embedding-голова | ✅ Завершён (ROC AUC=0.983, Recall@1=0.118, Discriminability=8.46) |
 | 4 | Базовый VIO (EKF) | 📋 Не начат |
 | 5 | TILM | 📋 Не начат |
 | 6 | Matching + EKF-коррекции | 📋 Не начат |

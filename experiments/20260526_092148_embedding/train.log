@@ -66,3 +66,10 @@
 2026-05-26 12:43:07.790 | INFO     | __main__:train:203 - Epoch  43/50 | train_loss=0.0363 | val_loss=0.0404 | val_AUC=0.9775 | lr=5.85e-06
 2026-05-26 12:48:22.026 | INFO     | __main__:train:203 - Epoch  44/50 | train_loss=0.0339 | val_loss=0.0443 | val_AUC=0.9771 | lr=4.32e-06
 2026-05-26 12:54:47.361 | INFO     | __main__:train:203 - Epoch  45/50 | train_loss=0.0351 | val_loss=0.0449 | val_AUC=0.9759 | lr=3.02e-06
+2026-05-26 13:01:07.839 | INFO     | __main__:train:203 - Epoch  46/50 | train_loss=0.0360 | val_loss=0.0424 | val_AUC=0.9774 | lr=1.94e-06
+2026-05-26 13:06:07.617 | INFO     | __main__:train:203 - Epoch  47/50 | train_loss=0.0346 | val_loss=0.0471 | val_AUC=0.9747 | lr=1.09e-06
+2026-05-26 13:11:17.912 | INFO     | __main__:train:203 - Epoch  48/50 | train_loss=0.0352 | val_loss=0.0443 | val_AUC=0.9754 | lr=4.87e-07
+2026-05-26 13:16:12.031 | INFO     | __main__:train:203 - Epoch  49/50 | train_loss=0.0347 | val_loss=0.0423 | val_AUC=0.9764 | lr=1.22e-07
+2026-05-26 13:20:54.795 | INFO     | __main__:train:203 - Epoch  50/50 | train_loss=0.0364 | val_loss=0.0448 | val_AUC=0.9773 | lr=0.00e+00
+2026-05-26 13:20:54.861 | SUCCESS  | __main__:train:231 - Final weights → weights\embedding_head.pt
+2026-05-26 13:20:54.861 | SUCCESS  | __main__:train:232 - Best AUC=0.9783 → experiments\20260526_092148_embedding\best.pt

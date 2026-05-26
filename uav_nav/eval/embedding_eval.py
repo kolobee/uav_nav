@@ -129,7 +129,8 @@ def _embed_split(
 
     logger.info("  Embedding {} instances from {}", len(usable), csv_path.name)
 
-    crops_buf: list[torch.Tensor] = []
+    q_crops: list[torch.Tensor] = []
+    g_crops: list[torch.Tensor] = []
     query_iids: list[str] = []
     gallery_iids: list[str] = []
     query_class: list[int] = []
@@ -137,8 +138,10 @@ def _embed_split(
 
     for iid, rs in usable:
         r0, r1 = rs[0], rs[1]
-        for row, tgt_iids, tgt_class in [(r0, query_iids, query_class),
-                                          (r1, gallery_iids, gallery_class)]:
+        for row, tgt_iids, tgt_class, buf in [
+            (r0, query_iids, query_class, q_crops),
+            (r1, gallery_iids, gallery_class, g_crops),
+        ]:
             img = cv2.imread(row["image_path"])
             if img is None:
                 crop_arr = np.full((crop_size, crop_size, 3), 127, dtype=np.uint8)
@@ -146,9 +149,12 @@ def _embed_split(
                 crop_arr = _extract_crop(img, row["polygon_flat"], crop_size, pad_ratio)
                 if crop_arr is None:
                     crop_arr = np.full((crop_size, crop_size, 3), 127, dtype=np.uint8)
-            crops_buf.append(transform(crop_arr))
+            buf.append(transform(crop_arr))
             tgt_iids.append(iid)
             tgt_class.append(int(row["class_id"]))
+
+    # All queries first, then all galleries — so embs[:n] / embs[n:] split is correct
+    crops_buf = q_crops + g_crops
 
     # Run in batches
     all_embs: list[np.ndarray] = []
@@ -159,7 +165,6 @@ def _embed_split(
             all_embs.append(head(batch).cpu().numpy())
 
     embs = np.concatenate(all_embs, axis=0)  # (2*N, D)
-    # Split back into query and gallery halves
     n = len(usable)
     query_embs   = embs[:n]
     gallery_embs = embs[n:]
@@ -207,8 +212,6 @@ class EmbeddingEvaluator:
         pos_sims, neg_sims = [], []
         for i, (q_iid, q_cls) in enumerate(zip(query_iids, query_class)):
             for j, (g_iid, g_cls) in enumerate(zip(gallery_iids, gallery_class)):
-                if i == j:
-                    continue
                 if g_cls != q_cls:
                     continue
                 if q_iid == g_iid:

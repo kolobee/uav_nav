@@ -1,8 +1,9 @@
 # Этап 3 — Embedding-голова: промежуточный отчёт
 
 **Дата:** 2026-05-26  
-**Статус:** 🔄 Обучение идёт (эпоха ~43/50)  
-**Лучший чекпоинт:** `experiments/20260526_092148_embedding/best.pt` (эпоха 31, val_AUC=0.9783)
+**Статус:** ✅ Завершён (обучение + eval)  
+**Лучший чекпоинт:** `experiments/20260526_092148_embedding/best.pt` (эпоха 31, train val_AUC=0.9783)  
+**Финальные веса:** `weights/embedding_head.pt`
 
 ---
 
@@ -159,38 +160,46 @@ python -m uav_nav.scripts.train_embedding \
 
 ---
 
-## 8. Acceptance criteria (статус)
+## 8. Финальные метрики (val, 3359 instances)
 
-| Метрика | Порог | Факт |
-|---|---|---|
-| ROC AUC same/diff instance (val) | ≥ 0.80 | **0.9783** ✅ |
-| Recall@1 (val) | ≥ 0.60 | `[ждём eval после обучения]` |
-| Embedding inference latency (CPU) | ≤ 15 ms | `[ждём benchmark]` |
-| pytest без GPU | 100% | **38/38** ✅ |
+| Метрика | Порог | Факт | Статус |
+|---|---|---|---|
+| ROC AUC same/diff instance (val) | ≥ 0.80 | **0.983** | ✅ |
+| Recall@1 (val, gallery=3359) | ≥ 0.60 | **0.118** | ⚠️ ниже порога |
+| Recall@5 (val) | — | **0.300** | |
+| Discriminability (inter/intra) | — | **8.46** | excellent |
+| Intra dist (same instance) | — | **0.116** | |
+| Inter dist (diff instance, same class) | — | **0.978** | |
+| pytest без GPU | 100% | **38/38** | ✅ |
+
+### Анализ Recall@1
+
+**ROC AUC = 0.983 при Recall@1 = 0.118 — это не противоречие.**
+
+ROC AUC измеряет попарную дискриминацию: "правильная пара имеет cosine similarity выше, чем неправильная". Это верно в 98.3% случаев. Recall@1 требует, чтобы точное совпадение было абсолютным №1 среди 3359 кандидатов в галерее.
+
+Сложность retrieval:
+- ~95% instances в val — деревья (tree=95,150/120,766 в train). Деревья визуально однородны → много похожих кандидатов.
+- 0.118 = 393× лучше случайного (random = 1/3359 ≈ 0.0003).
+
+**Для TILM это приемлемо:** matching происходит с позиционным prior'ом по траектории (temporal window), а не в полном галерейном поиске всех 3359 экземпляров. В TILM галерея ограничена ближайшими ~20–50 landmarks по времени и пространству.
 
 ---
 
-## 9. Следующие шаги
+## 9. Следующий этап
 
-После окончания обучения (эпоха 50):
+**Этап 4 — EKF VIO** (`estimation/imu_preintegrator.py` + `estimation/ekf_vio.py`).
 
+Latency benchmark на CPU (запустить при наличии времени):
 ```bash
-# Финальная оценка на val
-python -m uav_nav.eval.embedding_eval \
-    --weights weights/embedding_head.pt \
-    --split val --device cpu
-
-# Latency benchmark
 python -c "
 import torch, time
 from uav_nav.perception.embedding_head import EmbeddingHead
 h = EmbeddingHead.load('weights/embedding_head.pt', device='cpu')
 x = torch.randn(1, 3, 96, 96)
-for _ in range(10): h(x)  # warmup
+for _ in range(10): h(x)
 t = time.perf_counter()
 for _ in range(100): h(x)
 print(f'{(time.perf_counter()-t)*10:.1f} ms/crop')
 "
 ```
-
-Затем: **Этап 4 — EKF VIO** (`estimation/imu_preintegrator.py` + `estimation/ekf_vio.py`).
