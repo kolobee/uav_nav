@@ -1,0 +1,144 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "uav-nav"
+version = "0.1.0"
+description = "UAV navigation via VIO with semantic landmark matching (TILM)"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "UAV Nav Research" }]
+keywords = ["UAV", "VIO", "SLAM", "semantic", "navigation", "TILM"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+dependencies = [
+    # Core numerical / scientific
+    "numpy>=1.26",
+    "scipy>=1.12",
+
+    # Computer vision
+    "opencv-python>=4.9",
+
+    # Deep learning
+    "torch>=2.2",
+    "torchvision>=0.17",
+
+    # Object detection / segmentation
+    "ultralytics>=8.1",
+
+    # Dataset storage
+    "h5py>=3.10",
+
+    # Graph library (TILM topology)
+    "networkx>=3.3",
+
+    # Trajectory evaluation
+    "evo>=1.30",
+
+    # Visualisation
+    "rerun-sdk>=0.16",
+
+    # Logging
+    "loguru>=0.7",
+
+    # Configuration management
+    "hydra-core>=1.3",
+    "omegaconf>=2.3",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-cov>=5.0",
+    "black>=24.0",
+    "ruff>=0.4",
+    "pre-commit>=3.7",
+    "mypy>=1.10",
+]
+deploy = [
+    # NCNN Python bindings (install from wheels for Pi 5)
+    # "ncnn>=1.0",
+]
+viz = [
+    "matplotlib>=3.8",
+    "seaborn>=0.13",
+    "scikit-learn>=1.4",  # for t-SNE in embedding eval
+]
+
+[project.scripts]
+uav-nav-build-dataset  = "uav_nav.scripts.build_dataset:main"
+uav-nav-train-yolo     = "uav_nav.scripts.train_yolo:main"
+uav-nav-eval-yolo      = "uav_nav.scripts.eval_yolo:main"
+uav-nav-train-embed    = "uav_nav.scripts.train_embedding:main"
+uav-nav-build-tilm     = "uav_nav.scripts.build_tilm:main"
+uav-nav-simulate       = "uav_nav.scripts.simulate_gnss_loss:main"
+uav-nav-benchmark      = "uav_nav.scripts.benchmark_pi5:main"
+uav-nav-run-all        = "uav_nav.scripts.run_all_experiments:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["uav_nav*"]
+
+# ── pytest ────────────────────────────────────────────────────────────────────
+[tool.pytest.ini_options]
+testpaths = ["uav_nav/tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "--tb=short",
+    "--strict-markers",
+    "-v",
+    "--cov=uav_nav",
+    "--cov-report=term-missing",
+    "--cov-report=html:htmlcov",
+]
+markers = [
+    "slow: marks tests as slow (deselect with '-m not slow')",
+    "requires_gpu: tests that require a CUDA GPU",
+    "requires_midair: tests that require the MidAir dataset on disk",
+    "requires_airsim: tests that require a running AirSim instance",
+]
+filterwarnings = [
+    "error",
+    "ignore::DeprecationWarning",
+    "ignore::UserWarning",
+]
+
+# ── Black ─────────────────────────────────────────────────────────────────────
+[tool.black]
+line-length = 100
+target-version = ["py311"]
+include = '\.pyi?$'
+
+# ── Ruff ──────────────────────────────────────────────────────────────────────
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+ignore = [
+    "E501",   # line too long — handled by black
+    "F401",   # imported but unused — tolerated in __init__.py re-exports
+]
+per-file-ignores = { "__init__.py" = ["F401"] }
+
+[tool.ruff.lint.isort]
+known-first-party = ["uav_nav"]
+
+# ── mypy ──────────────────────────────────────────────────────────────────────
+[tool.mypy]
+python_version = "3.11"
+strict = false
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true

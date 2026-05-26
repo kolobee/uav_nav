@@ -1,0 +1,69 @@
+# Raspberry Pi 5 Deployment Configuration
+# Inherits from default.yaml and overrides parameters for ARM deployment.
+# Key changes: NCNN backend, reduced resolution, fewer threads, lower FPS target.
+
+defaults:
+  - default
+
+# ── Camera (reduced resolution for Pi 5 throughput) ──────────────────────────
+camera:
+  width: 320
+  height: 240
+  fx: 222.2222      # scaled from 355.5556 × (320/512)
+  fy: 222.2222
+  cx: 160.0
+  cy: 120.0
+
+# ── YOLO (NCNN weights, smaller input) ───────────────────────────────────────
+yolo:
+  weights_path: "weights/yolo_midair.ncnn"
+  imgsz: 320
+  device: "cpu"
+  confidence_threshold: 0.4   # slightly stricter to reduce processing load
+
+# ── Embedding (NCNN weights) ─────────────────────────────────────────────────
+embedding:
+  weights_path: "weights/embedding_head.ncnn"
+  embedding_dim: 128
+
+# ── TILM (more aggressive pruning for memory constraints) ────────────────────
+tilm:
+  min_node_distance: 8.0   # larger stride to keep map compact
+  max_nodes: 2000          # hard cap on map size
+
+# ── Runtime (Pi 5 optimised) ─────────────────────────────────────────────────
+runtime:
+  target_fps: 8.0          # realistic throughput on Pi 5
+  worker_threads: 2        # Pi 5 has 4 cores; leave 2 for OS + comms
+  log_level: "WARNING"     # reduce I/O overhead from logging
+  enable_rerun: false
+  json_logs: false
+
+# ── Deployment (NCNN backend) ────────────────────────────────────────────────
+deployment:
+  backend: "ncnn"
+  ncnn_threads: 4
+  ncnn_vulkan: false       # Vulkan on Pi 5 is experimental; disable by default
+
+# ── Stereo (faster backend for Pi 5) ─────────────────────────────────────────
+stereo:
+  depth_backend: "bm"      # BlockMatching is faster than SGBM on ARM
+  max_disparity: 64        # reduced range
+
+# ── Landmark Extractor (fewer landmarks to reduce memory pressure) ────────────
+landmark_extractor:
+  max_landmarks_per_frame: 10
+  min_mask_area: 400       # larger minimum to skip noisy small detections
+
+# ── Matcher (faster retrieval with fewer candidates) ─────────────────────────
+matcher:
+  top_k_nodes: 3           # fewer candidates for faster geometric verify
+
+# ── EKF (relaxed noise params for noisier Pi 5 sensors if using real hw) ─────
+ekf:
+  R_gnss_std: 3.0          # typical consumer GPS accuracy on Pi 5 setup
+
+# ── Evaluation (shorter benchmark for quick field checks) ────────────────────
+eval:
+  benchmark_n_runs: 50
+  benchmark_warmup: 5

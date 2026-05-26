@@ -1,0 +1,45 @@
+repos:
+  # ── Black: opinionated code formatter ───────────────────────────────────────
+  - repo: https://github.com/psf/black
+    rev: 24.4.2
+    hooks:
+      - id: black
+        args: [--line-length, "100"]
+        language_version: python3.11
+
+  # ── Ruff: fast linter (replaces flake8 + isort) ────────────────────────────
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.4.7
+    hooks:
+      - id: ruff
+        args:
+          - --select=E,F,I
+          - --line-length=100
+          - --fix
+        types_or: [python, pyi]
+
+  # ── Standard pre-commit hooks ────────────────────────────────────────────────
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+        args: [--allow-multiple-documents]
+      - id: check-json
+      - id: check-toml
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: [--maxkb=5000]
+      - id: debug-statements
+      - id: mixed-line-ending
+        args: [--fix=lf]
+
+  # ── Mypy type checking (optional, can be slow) ───────────────────────────────
+  # Uncomment when type annotations are complete:
+  # - repo: https://github.com/pre-commit/mirrors-mypy
+  #   rev: v1.10.0
+  #   hooks:
+  #     - id: mypy
+  #       additional_dependencies: [numpy, loguru, hydra-core, omegaconf]
+  #       args: [--ignore-missing-imports, --no-strict-optional]

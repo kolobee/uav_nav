@@ -1,0 +1,22 @@
+description: Ultralytics YOLOv8n-seg model trained on C:\Users\kolob\PycharmProjects\vkr\data\yolo_v4\midair.yaml
+author: Ultralytics
+date: '2026-05-26T00:59:25.253911'
+version: 8.4.53
+license: AGPL-3.0 License (https://ultralytics.com/license)
+docs: https://docs.ultralytics.com
+stride: 32
+task: segment
+batch: 1
+imgsz:
+- 640
+- 640
+names:
+  0: river
+  1: road
+  2: rock
+  3: tree
+args:
+  batch: 1
+  half: false
+channels: 3
+end2end: false

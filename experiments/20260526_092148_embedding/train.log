@@ -1,0 +1,68 @@
+2026-05-26 09:21:48.810 | INFO     | __main__:train:103 - Run dir: experiments\20260526_092148_embedding
+2026-05-26 09:21:48.810 | INFO     | __main__:train:107 - Loading instance index from data\instance_index
+2026-05-26 09:21:52.797 | INFO     | __main__:train:114 - Train: 27904 instances → 436 batches/epoch | Val: 3359 instances
+2026-05-26 09:21:53.015 | INFO     | __main__:train:143 - Backbone frozen for first 5 epochs
+2026-05-26 09:26:18.646 | INFO     | __main__:train:203 - Epoch   1/50 | train_loss=0.2076 | val_loss=0.1490 | val_AUC=0.8956 | lr=9.99e-05
+2026-05-26 09:26:18.679 | SUCCESS  | __main__:train:215 -   New best AUC=0.8956 → experiments\20260526_092148_embedding\best.pt
+2026-05-26 09:30:32.329 | INFO     | __main__:train:203 - Epoch   2/50 | train_loss=0.1360 | val_loss=0.1366 | val_AUC=0.8986 | lr=9.96e-05
+2026-05-26 09:30:32.357 | SUCCESS  | __main__:train:215 -   New best AUC=0.8986 → experiments\20260526_092148_embedding\best.pt
+2026-05-26 09:35:06.739 | INFO     | __main__:train:203 - Epoch   3/50 | train_loss=0.1252 | val_loss=0.1269 | val_AUC=0.9145 | lr=9.91e-05
+2026-05-26 09:35:06.772 | SUCCESS  | __main__:train:215 -   New best AUC=0.9145 → experiments\20260526_092148_embedding\best.pt
+2026-05-26 09:39:41.897 | INFO     | __main__:train:203 - Epoch   4/50 | train_loss=0.1142 | val_loss=0.1203 | val_AUC=0.9148 | lr=9.84e-05
+2026-05-26 09:39:41.929 | SUCCESS  | __main__:train:215 -   New best AUC=0.9148 → experiments\20260526_092148_embedding\best.pt
+2026-05-26 09:44:15.923 | INFO     | __main__:train:203 - Epoch   5/50 | train_loss=0.1107 | val_loss=0.1167 | val_AUC=0.9178 | lr=9.76e-05
+2026-05-26 09:44:15.988 | SUCCESS  | __main__:train:215 -   New best AUC=0.9178 → experiments\20260526_092148_embedding\best.pt
+2026-05-26 09:44:15.990 | INFO     | __main__:train:178 - Epoch 6: backbone unfrozen, optimizer rebuilt
+2026-05-26 09:49:02.445 | INFO     | __main__:train:203 - Epoch   6/50 | train_loss=0.0952 | val_loss=0.1021 | val_AUC=0.9288 | lr=9.99e-05
+2026-05-26 09:49:02.476 | SUCCESS  | __main__:train:215 -   New best AUC=0.9288 → experiments\20260526_092148_embedding\best.pt
+2026-05-26 09:53:48.380 | INFO     | __main__:train:203 - Epoch   7/50 | train_loss=0.0830 | val_loss=0.0861 | val_AUC=0.9430 | lr=9.95e-05
+2026-05-26 09:53:48.412 | SUCCESS  | __main__:train:215 -   New best AUC=0.9430 → experiments\20260526_092148_embedding\best.pt
+2026-05-26 09:58:34.495 | INFO     | __main__:train:203 - Epoch   8/50 | train_loss=0.0745 | val_loss=0.0781 | val_AUC=0.9512 | lr=9.89e-05
+2026-05-26 09:58:34.527 | SUCCESS  | __main__:train:215 -   New best AUC=0.9512 → experiments\20260526_092148_embedding\best.pt
+2026-05-26 10:03:23.600 | INFO     | __main__:train:203 - Epoch   9/50 | train_loss=0.0678 | val_loss=0.0768 | val_AUC=0.9524 | lr=9.81e-05
+2026-05-26 10:03:23.633 | SUCCESS  | __main__:train:215 -   New best AUC=0.9524 → experiments\20260526_092148_embedding\best.pt
+2026-05-26 10:08:06.314 | INFO     | __main__:train:203 - Epoch  10/50 | train_loss=0.0634 | val_loss=0.0726 | val_AUC=0.9558 | lr=9.70e-05
+2026-05-26 10:08:06.376 | SUCCESS  | __main__:train:215 -   New best AUC=0.9558 → experiments\20260526_092148_embedding\best.pt
+2026-05-26 10:12:51.046 | INFO     | __main__:train:203 - Epoch  11/50 | train_loss=0.0599 | val_loss=0.0682 | val_AUC=0.9565 | lr=9.57e-05
+2026-05-26 10:12:51.078 | SUCCESS  | __main__:train:215 -   New best AUC=0.9565 → experiments\20260526_092148_embedding\best.pt
+2026-05-26 10:17:32.967 | INFO     | __main__:train:203 - Epoch  12/50 | train_loss=0.0570 | val_loss=0.0628 | val_AUC=0.9623 | lr=9.41e-05
+2026-05-26 10:17:32.998 | SUCCESS  | __main__:train:215 -   New best AUC=0.9623 → experiments\20260526_092148_embedding\best.pt
+2026-05-26 10:22:15.956 | INFO     | __main__:train:203 - Epoch  13/50 | train_loss=0.0550 | val_loss=0.0604 | val_AUC=0.9642 | lr=9.24e-05
+2026-05-26 10:22:15.990 | SUCCESS  | __main__:train:215 -   New best AUC=0.9642 → experiments\20260526_092148_embedding\best.pt
+2026-05-26 10:26:57.272 | INFO     | __main__:train:203 - Epoch  14/50 | train_loss=0.0523 | val_loss=0.0571 | val_AUC=0.9685 | lr=9.05e-05
+2026-05-26 10:26:57.302 | SUCCESS  | __main__:train:215 -   New best AUC=0.9685 → experiments\20260526_092148_embedding\best.pt
+2026-05-26 10:31:37.590 | INFO     | __main__:train:203 - Epoch  15/50 | train_loss=0.0525 | val_loss=0.0549 | val_AUC=0.9661 | lr=8.83e-05
+2026-05-26 10:36:17.873 | INFO     | __main__:train:203 - Epoch  16/50 | train_loss=0.0491 | val_loss=0.0560 | val_AUC=0.9678 | lr=8.60e-05
+2026-05-26 10:40:56.901 | INFO     | __main__:train:203 - Epoch  17/50 | train_loss=0.0470 | val_loss=0.0498 | val_AUC=0.9729 | lr=8.35e-05
+2026-05-26 10:40:56.932 | SUCCESS  | __main__:train:215 -   New best AUC=0.9729 → experiments\20260526_092148_embedding\best.pt
+2026-05-26 10:45:41.563 | INFO     | __main__:train:203 - Epoch  18/50 | train_loss=0.0471 | val_loss=0.0515 | val_AUC=0.9708 | lr=8.08e-05
+2026-05-26 10:50:20.987 | INFO     | __main__:train:203 - Epoch  19/50 | train_loss=0.0462 | val_loss=0.0497 | val_AUC=0.9751 | lr=7.80e-05
+2026-05-26 10:50:21.018 | SUCCESS  | __main__:train:215 -   New best AUC=0.9751 → experiments\20260526_092148_embedding\best.pt
+2026-05-26 10:55:01.308 | INFO     | __main__:train:203 - Epoch  20/50 | train_loss=0.0442 | val_loss=0.0545 | val_AUC=0.9676 | lr=7.50e-05
+2026-05-26 10:59:41.987 | INFO     | __main__:train:203 - Epoch  21/50 | train_loss=0.0439 | val_loss=0.0481 | val_AUC=0.9724 | lr=7.19e-05
+2026-05-26 11:04:22.984 | INFO     | __main__:train:203 - Epoch  22/50 | train_loss=0.0408 | val_loss=0.0482 | val_AUC=0.9722 | lr=6.87e-05
+2026-05-26 11:09:10.211 | INFO     | __main__:train:203 - Epoch  23/50 | train_loss=0.0427 | val_loss=0.0473 | val_AUC=0.9740 | lr=6.55e-05
+2026-05-26 11:13:55.798 | INFO     | __main__:train:203 - Epoch  24/50 | train_loss=0.0418 | val_loss=0.0480 | val_AUC=0.9734 | lr=6.21e-05
+2026-05-26 11:18:38.333 | INFO     | __main__:train:203 - Epoch  25/50 | train_loss=0.0408 | val_loss=0.0473 | val_AUC=0.9740 | lr=5.87e-05
+2026-05-26 11:23:21.608 | INFO     | __main__:train:203 - Epoch  26/50 | train_loss=0.0410 | val_loss=0.0475 | val_AUC=0.9748 | lr=5.52e-05
+2026-05-26 11:28:04.869 | INFO     | __main__:train:203 - Epoch  27/50 | train_loss=0.0387 | val_loss=0.0428 | val_AUC=0.9763 | lr=5.17e-05
+2026-05-26 11:28:04.900 | SUCCESS  | __main__:train:215 -   New best AUC=0.9763 → experiments\20260526_092148_embedding\best.pt
+2026-05-26 11:32:47.927 | INFO     | __main__:train:203 - Epoch  28/50 | train_loss=0.0389 | val_loss=0.0462 | val_AUC=0.9753 | lr=4.83e-05
+2026-05-26 11:37:29.778 | INFO     | __main__:train:203 - Epoch  29/50 | train_loss=0.0384 | val_loss=0.0455 | val_AUC=0.9762 | lr=4.48e-05
+2026-05-26 11:42:09.049 | INFO     | __main__:train:203 - Epoch  30/50 | train_loss=0.0394 | val_loss=0.0444 | val_AUC=0.9758 | lr=4.13e-05
+2026-05-26 11:46:50.869 | INFO     | __main__:train:203 - Epoch  31/50 | train_loss=0.0382 | val_loss=0.0406 | val_AUC=0.9783 | lr=3.79e-05
+2026-05-26 11:46:50.900 | SUCCESS  | __main__:train:215 -   New best AUC=0.9783 → experiments\20260526_092148_embedding\best.pt
+2026-05-26 11:51:30.571 | INFO     | __main__:train:203 - Epoch  32/50 | train_loss=0.0379 | val_loss=0.0429 | val_AUC=0.9763 | lr=3.45e-05
+2026-05-26 11:56:09.145 | INFO     | __main__:train:203 - Epoch  33/50 | train_loss=0.0374 | val_loss=0.0433 | val_AUC=0.9766 | lr=3.13e-05
+2026-05-26 12:00:46.651 | INFO     | __main__:train:203 - Epoch  34/50 | train_loss=0.0377 | val_loss=0.0443 | val_AUC=0.9760 | lr=2.81e-05
+2026-05-26 12:05:26.736 | INFO     | __main__:train:203 - Epoch  35/50 | train_loss=0.0378 | val_loss=0.0437 | val_AUC=0.9773 | lr=2.50e-05
+2026-05-26 12:10:07.969 | INFO     | __main__:train:203 - Epoch  36/50 | train_loss=0.0372 | val_loss=0.0440 | val_AUC=0.9772 | lr=2.20e-05
+2026-05-26 12:14:46.140 | INFO     | __main__:train:203 - Epoch  37/50 | train_loss=0.0356 | val_loss=0.0418 | val_AUC=0.9776 | lr=1.92e-05
+2026-05-26 12:19:29.724 | INFO     | __main__:train:203 - Epoch  38/50 | train_loss=0.0372 | val_loss=0.0414 | val_AUC=0.9773 | lr=1.65e-05
+2026-05-26 12:24:08.352 | INFO     | __main__:train:203 - Epoch  39/50 | train_loss=0.0358 | val_loss=0.0440 | val_AUC=0.9769 | lr=1.40e-05
+2026-05-26 12:28:50.598 | INFO     | __main__:train:203 - Epoch  40/50 | train_loss=0.0356 | val_loss=0.0436 | val_AUC=0.9775 | lr=1.17e-05
+2026-05-26 12:33:29.422 | INFO     | __main__:train:203 - Epoch  41/50 | train_loss=0.0342 | val_loss=0.0429 | val_AUC=0.9764 | lr=9.55e-06
+2026-05-26 12:38:07.753 | INFO     | __main__:train:203 - Epoch  42/50 | train_loss=0.0366 | val_loss=0.0482 | val_AUC=0.9747 | lr=7.60e-06
+2026-05-26 12:43:07.790 | INFO     | __main__:train:203 - Epoch  43/50 | train_loss=0.0363 | val_loss=0.0404 | val_AUC=0.9775 | lr=5.85e-06
+2026-05-26 12:48:22.026 | INFO     | __main__:train:203 - Epoch  44/50 | train_loss=0.0339 | val_loss=0.0443 | val_AUC=0.9771 | lr=4.32e-06
+2026-05-26 12:54:47.361 | INFO     | __main__:train:203 - Epoch  45/50 | train_loss=0.0351 | val_loss=0.0449 | val_AUC=0.9759 | lr=3.02e-06

@@ -1,0 +1,4 @@
+2026-05-26 09:00:44.741 | INFO     | __main__:train:101 - Run dir: experiments\20260526_090044_embedding
+2026-05-26 09:00:44.741 | INFO     | __main__:train:105 - Loading instance index from data\instance_index
+2026-05-26 09:00:48.530 | INFO     | __main__:train:112 - Train: 27904 instances → 436 batches/epoch | Val: 3359 instances
+2026-05-26 09:01:12.476 | INFO     | __main__:train:141 - Backbone frozen for first 5 epochs

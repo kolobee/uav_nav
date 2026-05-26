@@ -1,0 +1,59 @@
+{
+  "_comment": "MidAir semantic class ID → unified semantic class mapping for uav_nav.",
+  "_reference": "MidAir dataset: https://midair.ulg.ac.be/",
+  "_classes": {
+    "tree":  "Vegetation — trees, bushes (Kite:2, PLE:2).",
+    "rock":  "Rock / stone features — bare rocks, stones (Kite:6, PLE:6).",
+    "river": "Water bodies — rivers, streams, lakes (Kite:8, PLE:8).",
+    "road":  "Road infrastructure — asphalt roads, railway tracks (PLE:10,11)."
+  },
+  "_ignored": {
+    "0":  "sky / background",
+    "1":  "animals (deer) — rare, not useful as landmark",
+    "3":  "grass — not distinctive enough as landmark",
+    "4":  "ground with grass — not distinctive",
+    "5":  "ambiguous hills/treetops — mixed terrain, unreliable label",
+    "9":  "background",
+    "12": "road signs — too small for reliable detection",
+    "13": "barriers / шлагбаум — too small",
+    "14": "background"
+  },
+  "label_map": {
+    "0":  "background",
+    "1":  "background",
+    "2":  "tree",
+    "3":  "background",
+    "4":  "background",
+    "5":  "background",
+    "6":  "rock",
+    "7":  "river",
+    "8":  "river",
+    "9":  "background",
+    "10": "road",
+    "11": "road",
+    "12": "background",
+    "13": "background",
+    "14": "background"
+  },
+  "class_to_id": {
+    "background": 0,
+    "river":      1,
+    "road":       2,
+    "rock":       3,
+    "tree":       4
+  },
+  "id_to_class": {
+    "0": "background",
+    "1": "river",
+    "2": "road",
+    "3": "rock",
+    "4": "tree"
+  },
+  "colors_rgb": {
+    "background": [0,   0,   0  ],
+    "tree":       [34,  139, 34 ],
+    "rock":       [139, 90,  43 ],
+    "river":      [30,  144, 255],
+    "road":       [128, 128, 128]
+  }
+}

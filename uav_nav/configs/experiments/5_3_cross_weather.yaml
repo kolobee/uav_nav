@@ -1,0 +1,31 @@
+# Experiment 5.3: Cross-weather landmark matching
+# Tests TILM generalisation when train and test weather conditions differ.
+# Maps built from cloudy sequences; evaluated on foggy and sunny sequences.
+
+defaults:
+  - ../default
+
+experiment:
+  name: "5_3_cross_weather"
+  description: >
+    Evaluate TILM matching accuracy when the map is built under one weather
+    condition and queried under a different condition. Measures weather
+    invariance of semantic landmark descriptors.
+
+scenario:
+  train_weather: ["cloudy"]
+  test_weather: ["foggy", "sunny"]
+  gnss_outages:
+    - start_time: 60.0
+      duration: 30.0
+      noise_std: 0.0
+  sequence_ids:
+    - "Kite_test/foggy"
+    - "Kite_test/sunny"
+
+eval:
+  report_per_weather: true
+  compute_embedding_recall: true
+  embedding_recall_k: [1, 5, 10]
+
+# This experiment uses the default parameter set without modifications.

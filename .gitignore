@@ -1,0 +1,42 @@
+# ── Datasets (25 GB) ─────────────────────────────────────────────────────────
+data/
+
+# ── Python artifacts ──────────────────────────────────────────────────────────
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+*.egg
+dist/
+build/
+
+# ── Test / coverage ───────────────────────────────────────────────────────────
+.coverage
+htmlcov/
+.pytest_cache/
+
+# ── IDE ───────────────────────────────────────────────────────────────────────
+.idea/
+.vscode/
+*.swp
+
+# ── Visualization outputs ─────────────────────────────────────────────────────
+viz_classes/
+viz_labels/
+viz_labels1/
+viz_output/
+
+# ── Misc local dirs ───────────────────────────────────────────────────────────
+logs/
+outputs/
+_backups/
+
+# ── Claude local memory ───────────────────────────────────────────────────────
+.claude/
+
+# ── Base YOLO pretrained weights (not project-specific) ──────────────────────
+yolo26n.pt
+yolov8n-seg.pt

@@ -1,0 +1,176 @@
+# UAV Navigation System — Default Configuration
+# All parameters with reasonable defaults for the MidAir dataset.
+# Override specific sections in environment-specific configs (e.g. pi5.yaml).
+
+# ── Camera Intrinsics (MidAir RGB 512×512) ───────────────────────────────────
+camera:
+  fx: 512.0
+  fy: 512.0
+  cx: 512.0
+  cy: 512.0
+  width: 1024
+  height: 1024
+  dist_coeffs: [0.0, 0.0, 0.0, 0.0, 0.0]
+  camera_id: "midair_rgb"
+
+# ── Stereo Configuration ──────────────────────────────────────────────────────
+stereo:
+  baseline: 0.12        # metres
+  depth_backend: "sgbm" # sgbm | bm | raft | cres
+  min_disparity: 0
+  max_disparity: 96
+
+# ── IMU Noise Parameters ──────────────────────────────────────────────────────
+imu:
+  noise_acc: 0.1           # m/s^2 / sqrt(Hz) — accelerometer noise density
+  noise_gyro: 0.01         # rad/s / sqrt(Hz) — gyroscope noise density
+  noise_bias_acc: 0.001    # m/s^3 / sqrt(Hz) — accelerometer bias random walk
+  noise_bias_gyro: 0.0001  # rad/s^2 / sqrt(Hz) — gyroscope bias random walk
+  gravity_ned: [0.0, 0.0, 9.81]  # NED gravity vector
+
+# ── EKF Parameters ───────────────────────────────────────────────────────────
+ekf:
+  initial_position_std: 1.0      # m — initial position uncertainty 1-sigma
+  initial_velocity_std: 0.1      # m/s
+  initial_attitude_std_deg: 1.0  # degrees
+  initial_bias_acc_std: 0.05     # m/s^2
+  initial_bias_gyro_std: 0.005   # rad/s
+  R_visual_std: 0.5              # pixels — visual measurement noise
+  R_landmark_std: 1.0            # m — landmark position noise
+  R_gnss_std: 2.0                # m — GNSS position noise
+
+# ── TILM Parameters ──────────────────────────────────────────────────────────
+tilm:
+  min_node_distance: 5.0         # m — minimum distance between map nodes
+  min_landmarks_per_node: 2      # discard nodes with fewer landmarks
+  edge_max_distance: 20.0        # m — max distance to create an edge
+  use_loop_closure: true
+  loop_closure_threshold: 0.75   # descriptor similarity threshold
+  descriptor_dim: 128
+  max_nodes: null                # null = unlimited
+
+# ── Path Follower Parameters ─────────────────────────────────────────────────
+path_follower:
+  D_min: 5.0              # m — minimum look-ahead distance
+  D_max_cap: 50.0         # m — maximum look-ahead distance cap
+  dt_window: 5.0          # s — velocity smoothing window
+  THRESHOLD: 0.7          # corridor quality threshold
+  max_speed: 15.0         # m/s
+  min_speed: 2.0          # m/s
+  heading_gain: 1.5
+  altitude_gain: 1.0
+  cross_track_gain: 0.8
+  waypoint_radius: 3.0    # m
+
+# ── Adaptive Corridor ────────────────────────────────────────────────────────
+corridor:
+  initial_width: 20.0     # m (half-width)
+  min_width: 5.0
+  max_width: 50.0
+  contraction_rate: 0.5   # m/s
+  expansion_rate: 2.0     # m/s
+  quality_threshold: 0.7
+  violation_timeout: 10.0 # s
+
+# ── Mission Manager ──────────────────────────────────────────────────────────
+mission:
+  gnss_lost_timeout: 5.0          # s without GNSS → GNSS_LOST mode
+  gnss_degraded_threshold: 10.0   # m accuracy → DEGRADED mode
+  emergency_uncertainty: 100.0    # m position uncertainty → EMERGENCY
+
+# ── YOLO Segmenter ───────────────────────────────────────────────────────────
+yolo:
+  weights_path: "weights/yolo_midair.pt"
+  dataset_yaml: "data/yolo/midair.yaml"
+  confidence_threshold: 0.35
+  iou_threshold: 0.45
+  imgsz: 640
+  batch: 16
+  epochs: 100
+  patience: 20
+  device: "cpu"
+  workers: 4
+
+# ── Embedding Head ───────────────────────────────────────────────────────────
+embedding:
+  weights_path: "weights/embedding_head.pt"
+  embedding_dim: 128
+  backbone_out_channels: 256
+  hidden_dim: 512
+  dropout: 0.1
+  temperature: 0.07
+  margin: 0.5
+  lr: 1.0e-4
+  weight_decay: 1.0e-5
+  epochs: 50
+  batch_size: 64
+
+# ── Temporal Matcher ─────────────────────────────────────────────────────────
+matcher:
+  descriptor_threshold: 0.5
+  geometric_threshold: 3.0
+  min_inliers: 3
+  top_k_nodes: 5
+
+# ── Landmark Extractor ───────────────────────────────────────────────────────
+landmark_extractor:
+  min_mask_area: 200
+  max_landmarks_per_frame: 20
+  depth_percentile: 50.0
+
+# ── Feature Extractor ────────────────────────────────────────────────────────
+feature_extractor:
+  type: "orb"          # orb | sift | superpoint | disk
+  max_keypoints: 500
+
+# ── Place Descriptor ─────────────────────────────────────────────────────────
+place_descriptor:
+  method: "class_mean"  # mean | class_mean | vlad | fisher
+  output_dim: 256
+  class_order: ["river", "road", "rock", "tree"]
+  codebook_size: 64
+
+# ── Dataset / MidAir ─────────────────────────────────────────────────────────
+dataset:
+  midair_root: "D:/data/MidAir"
+  label_map_path: "uav_nav/configs/label_map.json"
+  yolo_root: "data/yolo"
+  camera_dir: "color_left"
+  target_size: [640, 640]
+  max_frames_per_traj: null  # null = all frames; set e.g. 200 to limit dataset size
+  frame_stride: 10           # take every Nth frame per trajectory (10 → ~10x smaller dataset)
+  # All 6 conditions in every split; 80/20 split is done per trajectory
+  # within each condition (see build_dataset_standalone.py SPLIT_RANGES).
+  all_conditions:
+    - "Kite_training/cloudy"
+    - "Kite_training/sunny"
+    - "Kite_training/foggy"
+    - "PLE_training/fall"
+    - "PLE_training/spring"
+    - "PLE_training/winter"
+  train_frac: 0.8   # trajectories [0.0, 0.8) → train, [0.8, 0.9) → val, [0.9, 1.0) → test
+
+# ── Runtime ──────────────────────────────────────────────────────────────────
+runtime:
+  target_fps: 10.0
+  log_dir: "logs"
+  log_level: "INFO"
+  enable_rerun: false
+  json_logs: false
+  worker_threads: 4
+
+# ── Deployment ───────────────────────────────────────────────────────────────
+deployment:
+  backend: "pytorch"     # pytorch | onnx | ncnn
+  onnx_opset: 17
+  ncnn_threads: 4
+  ncnn_vulkan: false
+
+# ── Evaluation ───────────────────────────────────────────────────────────────
+eval:
+  align_trajectory: true
+  rpe_delta: 1
+  rpe_delta_unit: "frames"
+  position_tolerance: 10.0   # m — threshold for correct TILM match
+  benchmark_n_runs: 100
+  benchmark_warmup: 10

@@ -1,0 +1,42 @@
+# Experiment 5.5: TILM position correction during GNSS loss
+# Tests EKF drift reduction when TILM landmark matching provides
+# position corrections during a prolonged GNSS outage.
+
+defaults:
+  - ../default
+
+experiment:
+  name: "5_5_tilm_correction"
+  description: >
+    Measures the reduction in position drift when TILM corrections are applied
+    during a 120-second GNSS outage compared to pure VIO (no TILM).
+    Two variants: (a) TILM active, (b) TILM disabled (ablation).
+
+scenario:
+  train_weather: ["cloudy", "sunny"]
+  test_weather: ["cloudy"]
+  gnss_outages:
+    - start_time: 30.0
+      duration: 120.0
+      noise_std: 0.0
+  sequence_ids:
+    - "Kite_test/cloudy"
+
+# Ablation: run once with TILM and once without
+ablation:
+  variants:
+    - name: "with_tilm"
+      description: "Full pipeline with TILM matching"
+      modifications: {}
+    - name: "without_tilm"
+      description: "Pure VIO, no TILM landmark corrections"
+      modifications:
+        matcher.top_k_nodes: 0   # disables matching
+
+eval:
+  primary_metric: "max_position_error_during_outage"
+  secondary_metrics:
+    - "ate_rmse"
+    - "tilm_match_rate"
+    - "recovery_time_s"
+  gnss_outage_window: [30.0, 150.0]  # seconds

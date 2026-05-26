@@ -1,0 +1,29 @@
+# Experiment 5.4: Leave-one-trajectory-out YOLO generalisation test
+# For each held-out trajectory: train on N-1, evaluate on 1.
+# Tests per-trajectory generalisation and variance of mAP50-mask across folds.
+
+defaults:
+  - ../default
+
+experiment:
+  name: "5_4_leave_one_out"
+  description: >
+    Leave-one-trajectory-out cross-validation for YOLO segmentation.
+    Measures how much mAP50-mask drops when a trajectory is held out.
+    High variance across folds signals overfitting to specific trajectories.
+
+scenario:
+  # Training trajectories pool (one will be held out per fold)
+  all_sequences:
+    - "Kite_training/cloudy"
+    - "Kite_training/sunny"
+    - "Kite_training/foggy"
+    - "PLE_training/cloudy"
+    - "PLE_training/sunny"
+    - "PLE_training/foggy"
+
+eval:
+  report_per_trajectory: true
+  compute_loo_variance: true
+  # Acceptance criterion from Stage 2 plan: std across folds ≤ 0.05
+  variance_threshold: 0.05
